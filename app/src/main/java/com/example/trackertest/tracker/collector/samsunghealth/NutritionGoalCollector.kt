@@ -67,7 +67,10 @@ class NutritionGoalCollector(
 
     private var job: Job? = null
 
-    suspend fun readGoal(store: HealthDataStore, latestGoalSetTime:Long):Entity?{
+    var latestGoalSetTime:Long = -1
+    var latestCaloriesGoal:Float = -2.0f
+
+    suspend fun readGoal(store: HealthDataStore):Entity?{
         val req = DataType.NutritionGoalType
             .LAST_CALORIES.requestBuilder
             .setOrdering(Ordering.DESC)
@@ -84,11 +87,17 @@ class NutritionGoalCollector(
         if(resList.isNotEmpty()){
             val goal:Float? = resList.first().value?.toFloat()
             if(goal != null){
-                return Entity(
-                    latestGoalSetTime,
-                    if (goal == NutritionGoalCollector.defaultCaloriesGoal) -1.0f else goal,
-                    latestGoalSetTime
-                )
+                val recordGoal = if (goal == defaultCaloriesGoal) -1.0f else goal
+                if(recordGoal != latestCaloriesGoal) {
+                    latestGoalSetTime = System.currentTimeMillis()
+                    latestCaloriesGoal = recordGoal
+                    Log.d("TAG", "NutritionGoalCollector : latestGoalSetTime=$latestGoalSetTime, latestCaloriesGoal=$latestCaloriesGoal")
+                    return Entity(
+                        latestGoalSetTime,
+                        recordGoal,
+                        latestGoalSetTime
+                    )
+                }
             }
         }
         return null
@@ -99,12 +108,11 @@ class NutritionGoalCollector(
             //TODO: Should get latest goal's setTime
             //TODO: store should be passed from outside, not getting here.
             val store = HealthDataService.getStore(context)
-            val latestGoalSetTime:Long = -1;
             while(isActive){
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "NutritionGoalCollector: $timestamp")
 
-                val readEntity = readGoal(store, latestGoalSetTime)
+                val readEntity = readGoal(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity

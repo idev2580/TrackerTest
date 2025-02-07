@@ -25,6 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.CollectorState
+import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
+import com.example.trackertest.tracker.collector.samsunghealth.ActiveTimeGoalCollector
+import com.example.trackertest.tracker.collector.samsunghealth.NutritionGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.SleepGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepGoalCollector
@@ -89,6 +92,30 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
         Permission.of(DataTypes.WATER_INTAKE, AccessType.READ),
         Permission.of(DataTypes.WATER_INTAKE_GOAL, AccessType.READ)
     )
+    val acbCollector by remember {mutableStateOf(
+        ActiveCaloriesBurnedGoalCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<ActiveCaloriesBurnedGoalCollector.Config>(ActiveCaloriesBurnedGoalCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val atCollector by remember {mutableStateOf(
+        ActiveTimeGoalCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<ActiveTimeGoalCollector.Config>(ActiveTimeGoalCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val nutCollector by remember {mutableStateOf(
+        NutritionGoalCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<NutritionGoalCollector.Config>(NutritionGoalCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
     val stepGoalCollector by remember {mutableStateOf(
         StepGoalCollector(
             context,
@@ -134,6 +161,9 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ){
             Button(onClick={
+                acbCollector.start()
+                atCollector.start()
+                nutCollector.start()
                 stepGoalCollector.start()
                 sleepGoalCollector.start()
                 stepCollector.start()
@@ -141,6 +171,9 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 Text(text = "Start")
             }
             Button(onClick={
+                acbCollector.stop()
+                atCollector.stop()
+                nutCollector.stop()
                 stepGoalCollector.stop()
                 sleepGoalCollector.stop()
                 stepCollector.stop()

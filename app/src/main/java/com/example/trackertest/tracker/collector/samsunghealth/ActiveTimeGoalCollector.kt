@@ -7,6 +7,8 @@ import com.example.trackertest.tracker.collector.core.Availability
 import com.example.trackertest.tracker.collector.core.CollectorConfig
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.core.DataEntity
+import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector.Companion
+import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector.Entity
 import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
@@ -67,7 +69,9 @@ class ActiveTimeGoalCollector(
 
     private var job: Job? = null
 
-    suspend fun readGoal(store: HealthDataStore, latestGoalSetTime:Long):Entity?{
+    var latestGoalSetTime:Long = -1
+    var latestGoal:Long = -2
+    suspend fun readGoal(store: HealthDataStore):Entity?{
         val req = DataType.ActiveTimeGoalType
             .LAST.requestBuilder
             .setOrdering(Ordering.DESC)
@@ -84,11 +88,17 @@ class ActiveTimeGoalCollector(
         if(resList.isNotEmpty()){
             val goal:Long? = resList.first().value?.toMillis()
             if(goal != null){
-                return Entity(
-                    latestGoalSetTime,
-                    if (goal == ActiveTimeGoalCollector.defaultGoal) -1 else goal,
-                    latestGoalSetTime
-                )
+                val recordGoal = if (goal == defaultGoal) -1L else goal
+                if(recordGoal != latestGoal){
+                    latestGoalSetTime = System.currentTimeMillis()
+                    latestGoal = recordGoal
+                    Log.d("TAG", "ActiveTimeGoalCollector : latestGoalSetTime=$latestGoalSetTime, latestGoal=$latestGoal")
+                    return Entity(
+                        latestGoalSetTime,
+                        recordGoal,
+                        latestGoalSetTime
+                    )
+                }
             }
         }
         return null
@@ -99,12 +109,11 @@ class ActiveTimeGoalCollector(
             //TODO: Should get latest goal's setTime
             //TODO: store should be passed from outside, not getting here.
             val store = HealthDataService.getStore(context)
-            val latestGoalSetTime:Long = -1;
             while(isActive){
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "ActiveTimeGoalCollector: $timestamp")
 
-                val readEntity = readGoal(store, latestGoalSetTime)
+                val readEntity = readGoal(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
