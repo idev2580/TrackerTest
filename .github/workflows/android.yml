@@ -25,7 +25,7 @@ jobs:
     - name: Build debug APK with Gradle
       run: ./gradlew assmebleDebug --stacktrace
     - name: Upload Debug APK
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: app
         path: app/build/outputs/apk/debug
