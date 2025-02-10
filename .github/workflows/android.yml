@@ -30,7 +30,7 @@ jobs:
         name: app
         path: app/build/outputs/apk/debug
     
-    - name: Upload Debug APK in Relecrfase
+    - name: Upload Debug APK in Release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
