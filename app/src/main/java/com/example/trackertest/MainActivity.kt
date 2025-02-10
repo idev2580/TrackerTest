@@ -27,11 +27,12 @@ import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveTimeGoalCollector
+import com.example.trackertest.tracker.collector.samsunghealth.ActivitySummaryCollector
+import com.example.trackertest.tracker.collector.samsunghealth.DeviceCollector
 import com.example.trackertest.tracker.collector.samsunghealth.NutritionGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.SleepGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepGoalCollector
-import com.example.trackertest.tracker.collector.samsunghealth.StepGoalCollector.Config
 import com.example.trackertest.tracker.data.DummySingletonStorage
 import com.example.trackertest.tracker.permission.DummyPermissionManager
 import com.example.trackertest.ui.theme.TrackerTestTheme
@@ -108,6 +109,22 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )}
+    val asCollector by remember{mutableStateOf(
+        ActivitySummaryCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<ActivitySummaryCollector.Config>(ActivitySummaryCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val devCollector by remember {mutableStateOf(
+        DeviceCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<DeviceCollector.Config>(DeviceCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
     val nutCollector by remember {mutableStateOf(
         NutritionGoalCollector(
             context,
@@ -163,6 +180,8 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             Button(onClick={
                 acbCollector.start()
                 atCollector.start()
+                asCollector.start()
+                devCollector.start()
                 nutCollector.start()
                 stepGoalCollector.start()
                 sleepGoalCollector.start()
@@ -173,6 +192,8 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             Button(onClick={
                 acbCollector.stop()
                 atCollector.stop()
+                asCollector.stop()
+                devCollector.stop()
                 nutCollector.stop()
                 stepGoalCollector.stop()
                 sleepGoalCollector.stop()
