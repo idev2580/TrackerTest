@@ -2,7 +2,6 @@ package com.example.trackertest.tracker.collector.samsunghealth
 
 import android.content.Context
 import android.util.Log
-import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.Availability
 import com.example.trackertest.tracker.collector.core.CollectorConfig
 import com.example.trackertest.tracker.collector.core.CollectorState
@@ -54,7 +53,7 @@ class BloodOxygenCollector(
     }
 
     override fun getConfigClass(): KClass<out CollectorConfig> {
-        return com.example.trackertest.tracker.collector.samsunghealth.BodyCompositionCollector.Config::class
+        return Config::class
     }
 
     override fun getEntityClass(): KClass<out DataEntity> {

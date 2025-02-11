@@ -7,7 +7,6 @@ import com.example.trackertest.tracker.collector.core.Availability
 import com.example.trackertest.tracker.collector.core.CollectorConfig
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.core.DataEntity
-import com.example.trackertest.tracker.collector.samsunghealth.BloodPressureCollector.Entity
 import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
