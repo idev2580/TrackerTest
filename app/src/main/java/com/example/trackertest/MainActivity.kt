@@ -25,9 +25,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.CollectorState
+import com.example.trackertest.tracker.collector.samsunghealth.AbstractMeasurementSessionCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveTimeGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActivitySummaryCollector
+import com.example.trackertest.tracker.collector.samsunghealth.BloodOxygenCollector
 import com.example.trackertest.tracker.collector.samsunghealth.BloodPressureCollector
 import com.example.trackertest.tracker.collector.samsunghealth.BodyCompositionCollector
 import com.example.trackertest.tracker.collector.samsunghealth.DeviceCollector
@@ -118,6 +120,14 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             context,
             DummyPermissionManager(),
             DummySingletonStorage<ActivitySummaryCollector.Config>(ActivitySummaryCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val boCollector by remember{mutableStateOf(
+        BloodOxygenCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<BloodOxygenCollector.Config>(BloodOxygenCollector.defaultConfig),
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )}
@@ -217,6 +227,7 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 acbCollector.start()
                 atCollector.start()
                 asCollector.start()
+                boCollector.start()
                 bpCollector.start()
                 bodyCompositionCollector.start()
                 devCollector.start()
@@ -233,6 +244,7 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 acbCollector.stop()
                 atCollector.stop()
                 asCollector.stop()
+                boCollector.stop()
                 bpCollector.stop()
                 bodyCompositionCollector.stop()
                 devCollector.stop()

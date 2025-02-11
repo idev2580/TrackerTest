@@ -82,7 +82,6 @@ class BloodOxygenCollector(
         val retList:MutableList<Pair<MetadataEntity, List<Entity>>> = mutableListOf()
         dataList.forEach{
             if(it.changeType == ChangeType.UPSERT){
-                //TODO
                 val uid:String = it.upsertDataPoint.uid
                 val startTime:Long = it.upsertDataPoint.startTime.toEpochMilli()
                 val endTime:Long? = it.upsertDataPoint.endTime?.toEpochMilli()
@@ -137,10 +136,15 @@ class BloodOxygenCollector(
 
                 val dataList = readAllData(store)
                 dataList.forEach{
+                    var itemLogMsg:String = "Metadata=${it.first}, dataCount=${it.second.size}"
                     metadataListener?.invoke(it.first)
+                    var actualIter:Int = 0
                     it.second.forEach{
                         listener?.invoke(it)
+                        itemLogMsg = "$itemLogMsg\n\tData=${it}"
+                        actualIter++
                     }
+                    Log.d("TAG", "BloodOxygenCollector($actualIter) :\n$itemLogMsg")
                 }
                 sleep(configFlow.value.interval)
             }
