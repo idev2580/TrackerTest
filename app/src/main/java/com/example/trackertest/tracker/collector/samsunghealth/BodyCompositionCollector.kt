@@ -122,6 +122,56 @@ class BodyCompositionCollector(
         }
         return null
     }
+    suspend fun readAllData(store:HealthDataStore):List<Entity>{
+        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
+        val req = DataTypes.BODY_COMPOSITION
+            .changedDataRequestBuilder
+            .setChangeTimeFilter(timeFilter)
+            .build()
+        val dataList = store.readChanges(req).dataList
+        Log.d("TAG", "BodyComposition : To-sync data count=${dataList.size}, lastSyncTimestam$lastSyncTimestamp")
+
+        val entityList:MutableList<Entity> = mutableListOf()
+        var maxTimestamp:Long = lastSyncTimestamp
+        dataList.forEach{
+            if(it.changeType == ChangeType.UPSERT){
+                //Update maxTimestamp
+                if(it.changeTime.toEpochMilli() > maxTimestamp)
+                    maxTimestamp = it.changeTime.toEpochMilli()
+
+                val uid:String = it.upsertDataPoint.uid
+                val timestamp:Long = it.upsertDataPoint.startTime.toEpochMilli()
+                val bodyFatRatio:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.BODY_FAT)
+                val weight:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.WEIGHT)
+                val height:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.HEIGHT)
+                val skeletalMuscleRatio:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.SKELETAL_MUSCLE)
+                val totalBodyWater:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.TOTAL_BODY_WATER)
+                val muscleMass:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.MUSCLE_MASS)
+                //Actually, basalMetabolicRate should be derived from above values, but Samsung didn't opened their formula for basal metabolic rate.
+                //Katch-McArdle formula shows the closest result to Samsung Health's one.
+                val basalMetabolicRate:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.BASAL_METABOLIC_RATE)?.toFloat()
+
+                entityList.add(
+                    Entity(
+                        System.currentTimeMillis(),
+                        uid,
+                        timestamp,
+                        bodyFatRatio?:Float.NaN,
+                        weight?:Float.NaN,
+                        height?:Float.NaN,
+                        skeletalMuscleRatio?:Float.NaN,
+                        totalBodyWater?:Float.NaN,
+                        muscleMass?:Float.NaN,
+                        basalMetabolicRate?:Float.NaN
+                    )
+                )
+            }
+        }
+
+        //Update lastSyncTimestamp
+        lastSyncTimestamp = maxTimestamp
+        return entityList
+    }
     override fun start() {
         super.start()
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -130,14 +180,19 @@ class BodyCompositionCollector(
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "BodyCompositionCollector: $timestamp")
 
-                val readEntity = readData(store)
+                val readEntities = readAllData(store)
+                readEntities.forEach{
+                    listener?.invoke(it)
+                }
+                sleep(configFlow.value.interval)
+                /*val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
                 }
                 if(lastSyncTimestamp >= timestamp)
-                    sleep(configFlow.value.interval)
+                    sleep(configFlow.value.interval)*/
             }
         }
 

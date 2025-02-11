@@ -7,6 +7,7 @@ import com.example.trackertest.tracker.collector.core.Availability
 import com.example.trackertest.tracker.collector.core.CollectorConfig
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.core.DataEntity
+import com.example.trackertest.tracker.collector.samsunghealth.BloodPressureCollector.Entity
 import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
@@ -109,9 +110,40 @@ class WaterIntakeCollector(
         return null
     }
     suspend fun readAllData(store:HealthDataStore):List<Entity>{
-        //TODO : Sync all data from samsung health data SDK at once, using list.
+        //Sync all data from samsung health data SDK at once, using list.
         //For better performance and battery time, this should be used instead of above one.
-        return listOf()
+        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
+        val req = DataTypes.WATER_INTAKE
+            .changedDataRequestBuilder
+            .setChangeTimeFilter(timeFilter)
+            .build()
+        val dataList = store.readChanges(req).dataList
+        Log.d("TAG", "WaterIntake : To-sync data count=${dataList.size}, lastSyncTimestamp=$lastSyncTimestamp")
+
+        val entityList:MutableList<Entity> = mutableListOf()
+        var maxTimestamp:Long = lastSyncTimestamp
+        dataList.forEach{
+            if(it.changeType == ChangeType.UPSERT){
+                //Update maxTimestamp
+                if(it.changeTime.toEpochMilli() > maxTimestamp)
+                    maxTimestamp = it.changeTime.toEpochMilli()
+
+                val uid:String = it.upsertDataPoint.uid
+                val timestamp:Long = it.upsertDataPoint.startTime.toEpochMilli()
+                val amount:Float? = it.upsertDataPoint.getValue(DataType.WaterIntakeType.AMOUNT)
+                entityList.add(
+                    Entity(
+                        System.currentTimeMillis(),
+                        uid,
+                        timestamp,
+                        amount?:Float.NaN
+                    )
+                )
+            }
+        }
+        //Update lastSyncTimestamp
+        lastSyncTimestamp = maxTimestamp
+        return entityList
     }
     override fun start() {
         super.start()
@@ -123,14 +155,19 @@ class WaterIntakeCollector(
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "WaterIntakeCollector: $timestamp")
 
-                val readEntity = readData(store)
+                val readEntities = readAllData(store)
+                readEntities.forEach{
+                    listener?.invoke(it)
+                }
+                sleep(configFlow.value.interval)
+                /*val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
                 }
                 if(lastSyncTimestamp >= timestamp)
-                    sleep(configFlow.value.interval)
+                    sleep(configFlow.value.interval)*/
             }
         }
 

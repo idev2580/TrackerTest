@@ -72,7 +72,7 @@ class ActivitySummaryCollector(
     var latestDataTimestamp:Long = -1L
 
     fun getTimeFilter():LocalTimeFilter{
-        Log.d("TAG", "ActivitySummary.getTimeFilter() : latestDataTimestamp=$latestDataTimestamp")
+        //Log.d("TAG", "ActivitySummary.getTimeFilter() : latestDataTimestamp=$latestDataTimestamp")
         val currentTimestamp = System.currentTimeMillis()
 
         //val targetTimestamp = if(latestDataTimestamp == -1L) (currentTimestamp - 30L * 24L * 3600L * 1000L) else latestDataTimestamp

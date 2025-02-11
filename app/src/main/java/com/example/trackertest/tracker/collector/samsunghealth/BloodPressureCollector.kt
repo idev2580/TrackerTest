@@ -113,8 +113,8 @@ class BloodPressureCollector(
                 System.currentTimeMillis(),
                 uid,
                 timestamp,
-                diastolic?:0.0f,
-                systolic?:0.0f,
+                diastolic?:Float.NaN,
+                systolic?:Float.NaN,
                 pulseRate?:-1,
                 medicationTaken?:false
             )
@@ -122,9 +122,46 @@ class BloodPressureCollector(
         return null
     }
     suspend fun readAllData(store:HealthDataStore):List<Entity>{
-        //TODO : Sync all data from samsung health data SDK at once, using list.
+        //Sync all data from samsung health data SDK at once, using list.
         //For better performance and battery time, this should be used instead of above one.
-        return listOf()
+        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
+        val req = DataTypes.BLOOD_PRESSURE
+            .changedDataRequestBuilder
+            .setChangeTimeFilter(timeFilter)
+            .build()
+        val dataList = store.readChanges(req).dataList
+        Log.d("TAG", "BloodPressure : To-sync data count=${dataList.size}, lastSyncTimestamp=$lastSyncTimestamp")
+
+        val entityList:MutableList<Entity> = mutableListOf()
+        var maxTimestamp:Long = lastSyncTimestamp
+        dataList.forEach{
+            if(it.changeType == ChangeType.UPSERT){
+                //Update maxTimestamp
+                if(it.changeTime.toEpochMilli() > maxTimestamp)
+                    maxTimestamp = it.changeTime.toEpochMilli()
+
+                val uid:String = it.upsertDataPoint.uid
+                val timestamp:Long = it.upsertDataPoint.startTime.toEpochMilli()
+                val diastolic:Float? = it.upsertDataPoint.getValue(DataType.BloodPressureType.DIASTOLIC)
+                val systolic:Float? = it.upsertDataPoint.getValue(DataType.BloodPressureType.SYSTOLIC)
+                val pulseRate:Int? = it.upsertDataPoint.getValue(DataType.BloodPressureType.PULSE_RATE)
+                val medicationTaken:Boolean? = it.upsertDataPoint.getValue(DataType.BloodPressureType.MEDICATION_TAKEN)
+                entityList.add(
+                    Entity(
+                        System.currentTimeMillis(),
+                        uid,
+                        timestamp,
+                        diastolic?:Float.NaN,
+                        systolic?:Float.NaN,
+                        pulseRate?:-1,
+                        medicationTaken?:false
+                    )
+                )
+            }
+        }
+        //Update lastSyncTimestamp
+        lastSyncTimestamp = maxTimestamp
+        return entityList
     }
     override fun start() {
         super.start()
@@ -135,14 +172,19 @@ class BloodPressureCollector(
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "BloodPressureCollector: $timestamp")
 
-                val readEntity = readData(store)
+                val readEntities = readAllData(store)
+                readEntities.forEach{
+                    listener?.invoke(it)
+                }
+                sleep(configFlow.value.interval)
+                /*val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
                 }
                 if(lastSyncTimestamp >= timestamp)
-                    sleep(configFlow.value.interval)
+                    sleep(configFlow.value.interval)*/
             }
         }
 
