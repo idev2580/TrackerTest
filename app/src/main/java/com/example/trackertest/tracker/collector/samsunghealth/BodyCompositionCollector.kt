@@ -1,6 +1,7 @@
 package com.example.trackertest.tracker.collector.samsunghealth
 
 import android.content.Context
+import android.provider.ContactsContract.Data
 import android.util.Log
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.Availability
@@ -11,8 +12,10 @@ import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
+import com.samsung.android.sdk.health.data.data.ChangeType
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.DataTypes
+import com.samsung.android.sdk.health.data.request.InstantTimeFilter
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
@@ -67,14 +70,56 @@ class BodyCompositionCollector(
 
     private var job: Job? = null
 
+    var lastSyncTimestamp:Long = -1
     suspend fun readData(store: HealthDataStore): Entity?{
-        /*val req = DataTypes.BODY_COMPOSITION
-            .readDataRequestBuilder
-            .setLocalTimeFilter()
-            .setOrdering(Ordering.DESC)
-            .build()*/
+        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
+        val req = DataTypes.BODY_COMPOSITION
+            .changedDataRequestBuilder
+            .setChangeTimeFilter(timeFilter)
+            .build()
+        val dataList = store.readChanges(req).dataList
+        Log.d("TAG", "BodyComposition : To-sync data count=${dataList.size}, lastSyncTimestam$lastSyncTimestamp")
 
+        if(dataList.isEmpty()){
+            lastSyncTimestamp = System.currentTimeMillis()
+            return null
+        }
+        //There are at least one or more data to sync
+        // -> Sync them one-by-one. (See conditional sleep call in while loop of start() method)
+        val minItem = dataList.reduce{
+                minItem, item ->
+            if (item.changeTime.toEpochMilli() < minItem.changeTime.toEpochMilli())
+                item
+            else
+                minItem
+        }
+        lastSyncTimestamp = minItem.changeTime.toEpochMilli()
+        if(minItem.changeType == ChangeType.UPSERT){
+            val uid:String = minItem.upsertDataPoint.uid
+            val timestamp:Long = minItem.upsertDataPoint.startTime.toEpochMilli()
+            val bodyFatRatio:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.BODY_FAT)
+            val weight:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.WEIGHT)
+            val height:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.HEIGHT)
+            val skeletalMuscleRatio:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.SKELETAL_MUSCLE)
+            val totalBodyWater:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.TOTAL_BODY_WATER)
+            val muscleMass:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.MUSCLE_MASS)
+            //Actually, basalMetabolicRate should be derived from above values, but Samsung didn't opened their formula for basal metabolic rate.
+            //Katch-McArdle formula shows the closest result to Samsung Health's one.
+            val basalMetabolicRate:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.BASAL_METABOLIC_RATE)?.toFloat()
 
+            return Entity(
+                System.currentTimeMillis(),
+                uid,
+                timestamp,
+                bodyFatRatio?:Float.NaN,
+                weight?:Float.NaN,
+                height?:Float.NaN,
+                skeletalMuscleRatio?:Float.NaN,
+                totalBodyWater?:Float.NaN,
+                muscleMass?:Float.NaN,
+                basalMetabolicRate?:Float.NaN
+            )
+        }
         return null
     }
     override fun start() {
@@ -91,8 +136,8 @@ class BodyCompositionCollector(
                         readEntity
                     )
                 }
-
-                sleep(configFlow.value.interval)
+                if(lastSyncTimestamp >= timestamp)
+                    sleep(configFlow.value.interval)
             }
         }
 

@@ -92,7 +92,7 @@ class StepCollector(
         val startTime = timeFilter.startTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val endTime = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
-        Log.d("TAG", "StepCollector : $startTime~$endTime")
+        //Log.d("TAG", "StepCollector : $startTime~$endTime")
         if(resList.isNotEmpty()){
             val step:Long? = resList.first().value?.toLong()
             if(step != null){

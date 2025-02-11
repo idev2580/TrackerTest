@@ -11,7 +11,10 @@ import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
+import com.samsung.android.sdk.health.data.data.ChangeType
 import com.samsung.android.sdk.health.data.request.DataType
+import com.samsung.android.sdk.health.data.request.DataTypes
+import com.samsung.android.sdk.health.data.request.InstantTimeFilter
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
@@ -66,9 +69,49 @@ class WaterIntakeCollector(
 
     private var job: Job? = null
 
-    suspend fun readGoal(store: HealthDataStore): Entity?{
+    var lastSyncTimestamp:Long = -1
+    suspend fun readData(store: HealthDataStore): Entity?{
+        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
+        val req = DataTypes.WATER_INTAKE
+            .changedDataRequestBuilder
+            .setChangeTimeFilter(timeFilter)
+            .build()
+        val dataList = store.readChanges(req).dataList
+        Log.d("TAG", "WaterIntake : To-sync data count=${dataList.size}, lastSyncTimestamp=$lastSyncTimestamp")
 
+        if(dataList.isEmpty()){
+            //No data to sync -> All data synced, change lastSyncTimestamp
+            lastSyncTimestamp = System.currentTimeMillis()
+            return null
+        }
+        //There are at least one or more data to sync
+        // -> Sync them one-by-one. (See conditional sleep call in while loop of start() method)
+        val minItem = dataList.reduce{
+                minItem, item ->
+            if (item.changeTime.toEpochMilli() < minItem.changeTime.toEpochMilli())
+                item
+            else
+                minItem
+        }
+        lastSyncTimestamp = minItem.changeTime.toEpochMilli()
+        if(minItem.changeType == ChangeType.UPSERT){
+            val uid:String = minItem.upsertDataPoint.uid
+            val timestamp:Long = minItem.upsertDataPoint.startTime.toEpochMilli()
+            val amount:Float? = minItem.upsertDataPoint.getValue(DataType.WaterIntakeType.AMOUNT)
+
+            return Entity(
+                System.currentTimeMillis(),
+                uid,
+                timestamp,
+                amount?:Float.NaN
+            )
+        }
         return null
+    }
+    suspend fun readAllData(store:HealthDataStore):List<Entity>{
+        //TODO : Sync all data from samsung health data SDK at once, using list.
+        //For better performance and battery time, this should be used instead of above one.
+        return listOf()
     }
     override fun start() {
         super.start()
@@ -80,14 +123,14 @@ class WaterIntakeCollector(
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "WaterIntakeCollector: $timestamp")
 
-                val readEntity = readGoal(store)
+                val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
                 }
-
-                sleep(configFlow.value.interval)
+                if(lastSyncTimestamp >= timestamp)
+                    sleep(configFlow.value.interval)
             }
         }
 

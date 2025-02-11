@@ -11,8 +11,10 @@ import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
+import com.samsung.android.sdk.health.data.data.ChangeType
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.DataTypes
+import com.samsung.android.sdk.health.data.request.InstantTimeFilter
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +24,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.lang.Thread.sleep
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
@@ -67,14 +70,61 @@ class BloodPressureCollector(
 
     private var job: Job? = null
 
+    var lastSyncTimestamp:Long = -1
     suspend fun readData(store: HealthDataStore): Entity?{
-        /*val req = DataTypes.BLOOD_PRESSURE
-            .readDataRequestBuilder
-            .setLocalTimeFilter()
-            .setOrdering(Ordering.DESC)
-            .build()*/
+        //Why changedDataRequestBuilder?
+        //-> In samsung health, the user can insert data for 'past'.
+        //   If there is trigger-like API, then we can sync using that, but there is no similar thing in Samsung Health data SDK
+        //   (It's very strange because its predecessor(Samsung Health SDK for Android) has trigger-like API)
+        //   So, to synchronize, we need to use 'When the data inserted' as filter rather than 'When the data represent'
+        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
+        val req = DataTypes.BLOOD_PRESSURE
+            .changedDataRequestBuilder
+            .setChangeTimeFilter(timeFilter)
+            .build()
+        val bloodPressureList = store.readChanges(req).dataList
+        Log.d("TAG", "BloodPressure : To-sync data count=${bloodPressureList.size}, lastSyncTimestamp=$lastSyncTimestamp")
 
+        if(bloodPressureList.isEmpty()){
+            //No data to sync -> All data synced, change lastSyncTimestamp
+            lastSyncTimestamp = System.currentTimeMillis()
+            return null
+        }
+
+        //There are at least one or more data to sync
+        // -> Sync them one-by-one. (See conditional sleep call in while loop of start() method)
+        val minItem = bloodPressureList.reduce{
+            minItem, item ->
+                if (item.changeTime.toEpochMilli() < minItem.changeTime.toEpochMilli())
+                    item
+                else
+                    minItem
+        }
+        lastSyncTimestamp = minItem.changeTime.toEpochMilli()
+        if(minItem.changeType == ChangeType.UPSERT){
+            val uid:String = minItem.upsertDataPoint.uid
+            val timestamp:Long = minItem.upsertDataPoint.startTime.toEpochMilli()
+            val diastolic:Float? = minItem.upsertDataPoint.getValue(DataType.BloodPressureType.DIASTOLIC)
+            val systolic:Float? = minItem.upsertDataPoint.getValue(DataType.BloodPressureType.SYSTOLIC)
+            val pulseRate:Int? = minItem.upsertDataPoint.getValue(DataType.BloodPressureType.PULSE_RATE)
+            val medicationTaken:Boolean? = minItem.upsertDataPoint.getValue(DataType.BloodPressureType.MEDICATION_TAKEN)
+
+            return Entity(
+                System.currentTimeMillis(),
+                uid,
+                timestamp,
+                diastolic?:0.0f,
+                systolic?:0.0f,
+                pulseRate?:-1,
+                medicationTaken?:false
+            )
+        }
         return null
+    }
+    suspend fun readAllData(store:HealthDataStore):List<Entity>{
+        //TODO : Sync all data from samsung health data SDK at once, using list.
+        //For better performance and battery time, this should be used instead of above one.
+        return listOf()
     }
     override fun start() {
         super.start()
@@ -91,8 +141,8 @@ class BloodPressureCollector(
                         readEntity
                     )
                 }
-
-                sleep(configFlow.value.interval)
+                if(lastSyncTimestamp >= timestamp)
+                    sleep(configFlow.value.interval)
             }
         }
 

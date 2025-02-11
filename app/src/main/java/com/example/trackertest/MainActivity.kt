@@ -28,11 +28,15 @@ import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveTimeGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActivitySummaryCollector
+import com.example.trackertest.tracker.collector.samsunghealth.BloodPressureCollector
+import com.example.trackertest.tracker.collector.samsunghealth.BodyCompositionCollector
 import com.example.trackertest.tracker.collector.samsunghealth.DeviceCollector
 import com.example.trackertest.tracker.collector.samsunghealth.NutritionGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.SleepGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepGoalCollector
+import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeCollector
+import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeGoalCollector
 import com.example.trackertest.tracker.data.DummySingletonStorage
 import com.example.trackertest.tracker.permission.DummyPermissionManager
 import com.example.trackertest.ui.theme.TrackerTestTheme
@@ -117,6 +121,22 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )}
+    val bpCollector by remember{ mutableStateOf(
+        BloodPressureCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<BloodPressureCollector.Config>(BloodPressureCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val bodyCompositionCollector by remember{ mutableStateOf(
+        BodyCompositionCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<BodyCompositionCollector.Config>(BodyCompositionCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
     val devCollector by remember {mutableStateOf(
         DeviceCollector(
             context,
@@ -157,6 +177,22 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )}
+    val waterCollector by remember { mutableStateOf(
+        WaterIntakeCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<WaterIntakeCollector.Config>(WaterIntakeCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val waterGoalCollector by remember { mutableStateOf(
+        WaterIntakeGoalCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<WaterIntakeGoalCollector.Config>(WaterIntakeGoalCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
 
     LaunchedEffect(context) {
         try {
@@ -181,11 +217,15 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 acbCollector.start()
                 atCollector.start()
                 asCollector.start()
+                bpCollector.start()
+                bodyCompositionCollector.start()
                 devCollector.start()
                 nutCollector.start()
                 stepGoalCollector.start()
                 sleepGoalCollector.start()
                 stepCollector.start()
+                waterCollector.start()
+                waterGoalCollector.start()
             }){
                 Text(text = "Start")
             }
@@ -193,11 +233,15 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 acbCollector.stop()
                 atCollector.stop()
                 asCollector.stop()
+                bpCollector.stop()
+                bodyCompositionCollector.stop()
                 devCollector.stop()
                 nutCollector.stop()
                 stepGoalCollector.stop()
                 sleepGoalCollector.stop()
                 stepCollector.stop()
+                waterCollector.stop()
+                waterGoalCollector.stop()
             }){
                 Text(text = "Stop")
             }
