@@ -6,11 +6,14 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.CollectorState
+import com.example.trackertest.tracker.collector.core.DataEntity
 import com.example.trackertest.tracker.collector.samsunghealth.AbstractMeasurementSessionCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveTimeGoalCollector
@@ -139,21 +144,66 @@ fun MainScreen(activity:MainActivity, modifier: Modifier = Modifier) {
         }){
             Text(text = if (isStarted) "Stop" else  "Start")
         }
-
+        LazyColumn(modifier = Modifier.fillMaxWidth()){
+            item{
+                NonsessionDataPanel("BloodPressure", tracker.bpCollector.dataStorage, modifier = Modifier.fillMaxWidth().background(Color(0.7f, 0.7f, 0.7f, 0.9f)))
+            }
+            item{
+                SessionDataPanel("BloodOxygen",tracker.boCollector.metadataStorage, tracker.boCollector.dataStorage , modifier = Modifier.fillMaxWidth().background(Color(0.7f, 0.7f, 0.7f, 0.9f)))
+            }
+        }
     }
 }
 @Composable
 fun NamedPanel(name:String, modifier:Modifier = Modifier, content:@Composable ()->Unit){
     Column(
-        modifier=modifier.fillMaxWidth(),
+        modifier=modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        Text(text=name, fontWeight=FontWeight.SemiBold)
-        content()
+        var isOpened by remember {mutableStateOf(true)}
+        Row(
+            modifier=Modifier.fillMaxWidth().background(Color(0.92f,0.98f,0.95f)),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ){
+            Text(text=name, fontSize=20.sp, fontWeight=FontWeight.SemiBold, modifier=Modifier.padding(4.dp))
+            Button(onClick = {
+                isOpened = !isOpened
+            }){
+                Text(text=if (isOpened) "Close" else "Open")
+            }
+        }
+        if(isOpened)
+            content()
     }
 }
 
 @Composable
-fun NonsessionDataPanel(name:String, modifier: Modifier = Modifier, content:@Composable ()->Unit){
+fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier){
+    NamedPanel(name, modifier){
+        Column{
+            dataList.forEach{
+                Text(text=it.toString())
+            }
+        }
+    }
+}
 
+@Composable
+fun SessionDataPanel(name:String,metadataList:List<DataEntity>, dataList:List<DataEntity>, modifier: Modifier = Modifier){
+    NamedPanel(name, modifier){
+        NamedPanel("Metadata", modifier){
+            Column {
+                metadataList.forEach {
+                    Text(text = it.toString())
+                }
+            }
+        }
+        NamedPanel("Records", modifier) {
+            Column {
+                dataList.forEach {
+                    Text(text = it.toString())
+                }
+            }
+        }
+    }
 }

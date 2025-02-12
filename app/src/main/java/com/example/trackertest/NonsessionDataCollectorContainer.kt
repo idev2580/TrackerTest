@@ -1,11 +1,13 @@
 package com.example.trackertest
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateListOf
+import androidx.lifecycle.ViewModel
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.DataEntity
 
-class NonsessionDataCollectorContainer<T:AbstractCollector<*,*>>(val collector:T) {
-    val dataStorage:MutableList<DataEntity> = mutableListOf()
+class NonsessionDataCollectorContainer<T:AbstractCollector<*,*>>(val collector:T) : ViewModel() {
+    val dataStorage:MutableList<DataEntity> = mutableStateListOf()
     init{
         collector.listener = { dataStorage.add(it) }
     }
