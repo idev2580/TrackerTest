@@ -33,7 +33,9 @@ import com.example.trackertest.tracker.collector.samsunghealth.BloodOxygenCollec
 import com.example.trackertest.tracker.collector.samsunghealth.BloodPressureCollector
 import com.example.trackertest.tracker.collector.samsunghealth.BodyCompositionCollector
 import com.example.trackertest.tracker.collector.samsunghealth.DeviceCollector
+import com.example.trackertest.tracker.collector.samsunghealth.HeartRateCollector
 import com.example.trackertest.tracker.collector.samsunghealth.NutritionGoalCollector
+import com.example.trackertest.tracker.collector.samsunghealth.SkinTemperatureCollector
 import com.example.trackertest.tracker.collector.samsunghealth.SleepGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepCollector
 import com.example.trackertest.tracker.collector.samsunghealth.StepGoalCollector
@@ -88,6 +90,7 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
         Permission.of(DataTypes.EXERCISE, AccessType.READ),
         Permission.of(DataTypes.EXERCISE_LOCATION, AccessType.READ),
         Permission.of(DataTypes.FLOORS_CLIMBED, AccessType.READ),
+        Permission.of(DataTypes.HEART_RATE, AccessType.READ),
         Permission.of(DataTypes.NUTRITION, AccessType.READ),
         Permission.of(DataTypes.NUTRITION_GOAL, AccessType.READ),
         Permission.of(DataTypes.SKIN_TEMPERATURE, AccessType.READ),
@@ -152,6 +155,22 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             context,
             DummyPermissionManager(),
             DummySingletonStorage<DeviceCollector.Config>(DeviceCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val hrCollector by remember {mutableStateOf(
+        HeartRateCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<HeartRateCollector.Config>(HeartRateCollector.defaultConfig),
+            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
+        )
+    )}
+    val stCollector by remember {mutableStateOf(
+        SkinTemperatureCollector(
+            context,
+            DummyPermissionManager(),
+            DummySingletonStorage<SkinTemperatureCollector.Config>(SkinTemperatureCollector.defaultConfig),
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )}
@@ -231,6 +250,8 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 bpCollector.start()
                 bodyCompositionCollector.start()
                 devCollector.start()
+                hrCollector.start()
+                stCollector.start()
                 nutCollector.start()
                 stepGoalCollector.start()
                 sleepGoalCollector.start()
@@ -248,6 +269,8 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
                 bpCollector.stop()
                 bodyCompositionCollector.stop()
                 devCollector.stop()
+                hrCollector.stop()
+                stCollector.stop()
                 nutCollector.stop()
                 stepGoalCollector.stop()
                 sleepGoalCollector.stop()

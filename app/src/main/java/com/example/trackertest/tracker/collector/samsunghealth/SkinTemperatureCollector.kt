@@ -1,6 +1,7 @@
 package com.example.trackertest.tracker.collector.samsunghealth
 
 import android.content.Context
+import android.health.connect.datatypes.SkinTemperatureRecord
 import android.util.Log
 import com.example.trackertest.tracker.collector.core.Availability
 import com.example.trackertest.tracker.collector.core.CollectorConfig
@@ -11,7 +12,7 @@ import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
 import com.samsung.android.sdk.health.data.data.ChangeType
-import com.samsung.android.sdk.health.data.data.entries.OxygenSaturation
+import com.samsung.android.sdk.health.data.data.entries.SkinTemperature
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.DataTypes
 import com.samsung.android.sdk.health.data.request.InstantTimeFilter
@@ -25,21 +26,21 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
-class BloodOxygenCollector(
+class SkinTemperatureCollector(
     val context: Context,
     permissionManager: PermissionManagerInterface,
     configStorage: SingletonStorageInterface<Config>,
     stateStorage: SingletonStorageInterface<CollectorState>,
 ): AbstractMeasurementSessionCollector<
-        BloodOxygenCollector.Config,
-        BloodOxygenCollector.MetadataEntity,
-        BloodOxygenCollector.Entity
-    >(permissionManager, configStorage, stateStorage){
+        SkinTemperatureCollector.Config,
+        SkinTemperatureCollector.MetadataEntity,
+        SkinTemperatureCollector.Entity>(permissionManager, configStorage, stateStorage) {
     companion object{
         val defaultConfig = Config(
             TimeUnit.SECONDS.toMillis(60)
         )
     }
+
     override val _defaultConfig = defaultConfig
 
     override val permissions = listOfNotNull<String>(
@@ -57,7 +58,6 @@ class BloodOxygenCollector(
             }
         }
     }
-
     override fun getConfigClass(): KClass<out CollectorConfig> {
         return Config::class
     }
@@ -65,13 +65,12 @@ class BloodOxygenCollector(
     override fun getEntityClass(): KClass<out DataEntity> {
         return Entity::class
     }
-
     private var job: Job? = null
 
     var lastSyncTimestamp:Long = -1L
     suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
         val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
-        val req = DataTypes.BLOOD_OXYGEN
+        val req = DataTypes.SKIN_TEMPERATURE
             .changedDataRequestBuilder
             .setChangeTimeFilter(timeFilter)
             .build()
@@ -85,19 +84,19 @@ class BloodOxygenCollector(
                 val uid:String = it.upsertDataPoint.uid
                 val startTime:Long = it.upsertDataPoint.startTime.toEpochMilli()
                 val endTime:Long? = it.upsertDataPoint.endTime?.toEpochMilli()
-                val oxygenSaturation:Float? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.OXYGEN_SATURATION)
-                val max:Float? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.MAX_OXYGEN_SATURATION)
-                val min:Float? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.MIN_OXYGEN_SATURATION)
+                val skinTemperature:Float? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.SKIN_TEMPERATURE)
+                val max:Float? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.MAX_SKIN_TEMPERATURE)
+                val min:Float? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.MIN_SKIN_TEMPERATURE)
 
                 val entityList:MutableList<Entity> = mutableListOf()
-                val measurements:List<OxygenSaturation>? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.SERIES_DATA)
+                val measurements:List<SkinTemperature>? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.SERIES_DATA)
                 measurements?.forEach{
                     val m_uid:String = uid
                     val m_startTime:Long = it.startTime.toEpochMilli()
                     val m_endTime:Long = it.endTime.toEpochMilli()
                     val m_min:Float = it.min
                     val m_max:Float = it.max
-                    val m_oxygenSaturation:Float = it.oxygenSaturation
+                    val m_skinTemperature:Float = it.skinTemperature
 
                     entityList.add(Entity(
                         System.currentTimeMillis(),
@@ -106,7 +105,7 @@ class BloodOxygenCollector(
                         m_endTime,
                         m_min,
                         m_max,
-                        m_oxygenSaturation
+                        m_skinTemperature
                     ))
                 }
 
@@ -117,8 +116,9 @@ class BloodOxygenCollector(
                             uid,
                             startTime,
                             endTime?:startTime,
-                            oxygenSaturation ?:Float.NaN
-                        ), entityList
+                            skinTemperature?:Float.NaN
+                        ),
+                        entityList
                     )
                 )
             }
@@ -132,7 +132,7 @@ class BloodOxygenCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "BloodOxygenCollector: $timestamp")
+                Log.d("TAG", "SkinTemperatureCollector: $timestamp")
 
                 val dataList = readAllData(store)
                 dataList.forEach{
@@ -142,7 +142,7 @@ class BloodOxygenCollector(
                         listener?.invoke(it)
                         //itemLogMsg = "$itemLogMsg\n\tData=${it}"
                     }
-                    Log.d("TAG", "BloodOxygenCollector :\n$itemLogMsg")
+                    Log.d("TAG", "SkinTemperatureCollector :\n$itemLogMsg")
                 }
                 sleep(configFlow.value.interval)
             }
@@ -162,7 +162,7 @@ class BloodOxygenCollector(
         val uid : String,
         val startTime : Long,
         val endTime : Long,
-        val oxygenSaturation: Float
+        val skinTemperature: Float
         //val appId: String,
         //val deviceId: String
     ) : DataEntity(received)
@@ -174,6 +174,6 @@ class BloodOxygenCollector(
         val endTime : Long,
         val min : Float,
         val max : Float,
-        val oxygenSaturation : Float
+        val skinTemperature : Float
     ) : DataEntity(received)
 }
