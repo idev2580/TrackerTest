@@ -66,6 +66,10 @@ class BloodOxygenCollector(
         return Entity::class
     }
 
+    override fun getMetadataEntityClass(): KClass<out DataEntity> {
+        return MetadataEntity::class
+    }
+
     private var job: Job? = null
 
     var lastSyncTimestamp:Long = -1L
@@ -142,7 +146,7 @@ class BloodOxygenCollector(
                         listener?.invoke(it)
                         //itemLogMsg = "$itemLogMsg\n\tData=${it}"
                     }
-                    Log.d("TAG", "BloodOxygenCollector :\n$itemLogMsg")
+                    //Log.d("TAG", "BloodOxygenCollector :\n$itemLogMsg")
                 }
                 sleep(configFlow.value.interval)
             }

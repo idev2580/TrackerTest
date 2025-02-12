@@ -19,10 +19,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.samsunghealth.AbstractMeasurementSessionCollector
@@ -57,7 +62,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TrackerTestTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
+                    MainScreen(
                         activity=this,
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -77,7 +82,7 @@ suspend fun checkAndRequestPermissions(context: Context, activity:MainActivity, 
 }
 
 @Composable
-fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
+fun MainScreen(activity:MainActivity, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val permSet = setOf(
         Permission.of(DataTypes.ACTIVITY_SUMMARY, AccessType.READ),
@@ -102,126 +107,8 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
         Permission.of(DataTypes.WATER_INTAKE, AccessType.READ),
         Permission.of(DataTypes.WATER_INTAKE_GOAL, AccessType.READ)
     )
-    val acbCollector by remember {mutableStateOf(
-        ActiveCaloriesBurnedGoalCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<ActiveCaloriesBurnedGoalCollector.Config>(ActiveCaloriesBurnedGoalCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val atCollector by remember {mutableStateOf(
-        ActiveTimeGoalCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<ActiveTimeGoalCollector.Config>(ActiveTimeGoalCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val asCollector by remember{mutableStateOf(
-        ActivitySummaryCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<ActivitySummaryCollector.Config>(ActivitySummaryCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val boCollector by remember{mutableStateOf(
-        BloodOxygenCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<BloodOxygenCollector.Config>(BloodOxygenCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val bpCollector by remember{ mutableStateOf(
-        BloodPressureCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<BloodPressureCollector.Config>(BloodPressureCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val bodyCompositionCollector by remember{ mutableStateOf(
-        BodyCompositionCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<BodyCompositionCollector.Config>(BodyCompositionCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val devCollector by remember {mutableStateOf(
-        DeviceCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<DeviceCollector.Config>(DeviceCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val hrCollector by remember {mutableStateOf(
-        HeartRateCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<HeartRateCollector.Config>(HeartRateCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val stCollector by remember {mutableStateOf(
-        SkinTemperatureCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<SkinTemperatureCollector.Config>(SkinTemperatureCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val nutCollector by remember {mutableStateOf(
-        NutritionGoalCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<NutritionGoalCollector.Config>(NutritionGoalCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val stepGoalCollector by remember {mutableStateOf(
-        StepGoalCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<StepGoalCollector.Config>(StepGoalCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val sleepGoalCollector by remember {mutableStateOf(
-        SleepGoalCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<SleepGoalCollector.Config>(SleepGoalCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val stepCollector by remember {mutableStateOf(
-        StepCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<StepCollector.Config>(StepCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val waterCollector by remember { mutableStateOf(
-        WaterIntakeCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<WaterIntakeCollector.Config>(WaterIntakeCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
-    val waterGoalCollector by remember { mutableStateOf(
-        WaterIntakeGoalCollector(
-            context,
-            DummyPermissionManager(),
-            DummySingletonStorage<WaterIntakeGoalCollector.Config>(WaterIntakeGoalCollector.defaultConfig),
-            DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
-        )
-    )}
+    val tracker:SampleTracker by remember{mutableStateOf(SampleTracker(context))}
+    var isStarted by remember {mutableStateOf(false)}
 
     LaunchedEffect(context) {
         try {
@@ -230,56 +117,43 @@ fun Greeting(activity:MainActivity, modifier: Modifier = Modifier) {
             Log.d("TRACKER_TEST","FAILED TO GET PERMISSION")
         }
     }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier=Modifier.fillMaxSize()
+        modifier=modifier.fillMaxSize()
     ){
         Text(
             text = "TrackerTest",
-            modifier = modifier
+            modifier = Modifier.padding(16.dp),
+            style = TextStyle(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-        ){
-            Button(onClick={
-                acbCollector.start()
-                atCollector.start()
-                asCollector.start()
-                boCollector.start()
-                bpCollector.start()
-                bodyCompositionCollector.start()
-                devCollector.start()
-                hrCollector.start()
-                stCollector.start()
-                nutCollector.start()
-                stepGoalCollector.start()
-                sleepGoalCollector.start()
-                stepCollector.start()
-                waterCollector.start()
-                waterGoalCollector.start()
-            }){
-                Text(text = "Start")
+        Button(onClick={
+            if(isStarted){
+                tracker.stop()
+            } else {
+                tracker.start()
             }
-            Button(onClick={
-                acbCollector.stop()
-                atCollector.stop()
-                asCollector.stop()
-                boCollector.stop()
-                bpCollector.stop()
-                bodyCompositionCollector.stop()
-                devCollector.stop()
-                hrCollector.stop()
-                stCollector.stop()
-                nutCollector.stop()
-                stepGoalCollector.stop()
-                sleepGoalCollector.stop()
-                stepCollector.stop()
-                waterCollector.stop()
-                waterGoalCollector.stop()
-            }){
-                Text(text = "Stop")
-            }
+            isStarted = !isStarted
+        }){
+            Text(text = if (isStarted) "Stop" else  "Start")
         }
+
     }
+}
+@Composable
+fun NamedPanel(name:String, modifier:Modifier = Modifier, content:@Composable ()->Unit){
+    Column(
+        modifier=modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
+        Text(text=name, fontWeight=FontWeight.SemiBold)
+        content()
+    }
+}
+
+@Composable
+fun NonsessionDataPanel(name:String, modifier: Modifier = Modifier, content:@Composable ()->Unit){
+
 }

@@ -6,6 +6,7 @@ import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.core.DataEntity
 import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
+import kotlin.reflect.KClass
 
 abstract class AbstractMeasurementSessionCollector<
         T: CollectorConfig,
@@ -20,5 +21,6 @@ abstract class AbstractMeasurementSessionCollector<
     configStorage,
     stateStorage
 ){
-    var metadataListener: ((MK) -> Unit)? = null
+    var metadataListener: ((DataEntity) -> Unit)? = null
+    abstract fun getMetadataEntityClass(): KClass<out DataEntity>
 }

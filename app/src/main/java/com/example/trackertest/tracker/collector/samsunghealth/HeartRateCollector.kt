@@ -64,6 +64,11 @@ class HeartRateCollector(
     override fun getEntityClass(): KClass<out DataEntity> {
         return Entity::class
     }
+
+    override fun getMetadataEntityClass(): KClass<out DataEntity> {
+        return MetadataEntity::class
+    }
+
     private var job: Job? = null
 
     var lastSyncTimestamp:Long = -1L
@@ -141,7 +146,7 @@ class HeartRateCollector(
                         listener?.invoke(it)
                         //itemLogMsg = "$itemLogMsg\n\tData=${it}"
                     }
-                    Log.d("TAG", "HeartRateCollector :\n$itemLogMsg")
+                    //Log.d("TAG", "HeartRateCollector :\n$itemLogMsg")
                 }
                 sleep(configFlow.value.interval)
             }

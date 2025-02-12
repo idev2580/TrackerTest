@@ -65,6 +65,11 @@ class SkinTemperatureCollector(
     override fun getEntityClass(): KClass<out DataEntity> {
         return Entity::class
     }
+
+    override fun getMetadataEntityClass(): KClass<out DataEntity> {
+        return MetadataEntity::class
+    }
+
     private var job: Job? = null
 
     var lastSyncTimestamp:Long = -1L
@@ -142,7 +147,7 @@ class SkinTemperatureCollector(
                         listener?.invoke(it)
                         //itemLogMsg = "$itemLogMsg\n\tData=${it}"
                     }
-                    Log.d("TAG", "SkinTemperatureCollector :\n$itemLogMsg")
+                    //Log.d("TAG", "SkinTemperatureCollector :\n$itemLogMsg")
                 }
                 sleep(configFlow.value.interval)
             }
