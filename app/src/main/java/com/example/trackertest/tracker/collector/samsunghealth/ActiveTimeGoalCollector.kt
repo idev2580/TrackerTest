@@ -37,7 +37,7 @@ class ActiveTimeGoalCollector(
         val defaultConfig = Config(
             TimeUnit.SECONDS.toMillis(60)
         )
-        val defaultGoal:Long = 5400
+        val defaultGoal:Long = 5400000
     }
     override val _defaultConfig = ActiveTimeGoalCollector.defaultConfig
 

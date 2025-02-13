@@ -89,9 +89,10 @@ class ActiveCaloriesBurnedGoalCollector(
             if(goal != null){
                 val recordGoal = if (goal == defaultGoal) -1.0f else goal
                 if(recordGoal != latestGoal){
+                    Log.d("TAG", "ActiveCaloriesBurnedGoalCollector : latestGoalSetTime=$latestGoalSetTime, recordGoal=$recordGoal, latestGoal=$latestGoal")
                     latestGoalSetTime = System.currentTimeMillis()
                     latestGoal = recordGoal
-                    Log.d("TAG", "ActiveCaloriesBurnedGoalCollector : latestGoalSetTime=$latestGoalSetTime, latestGoal=$latestGoal")
+
                     return Entity(
                         latestGoalSetTime,
                         recordGoal,
