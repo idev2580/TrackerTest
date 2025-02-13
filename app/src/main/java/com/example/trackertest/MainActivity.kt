@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +55,9 @@ import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeCollec
 import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeGoalCollector
 import com.example.trackertest.tracker.data.DummySingletonStorage
 import com.example.trackertest.tracker.permission.DummyPermissionManager
+import com.example.trackertest.ui.theme.Purple40
+import com.example.trackertest.ui.theme.Purple80
+import com.example.trackertest.ui.theme.PurpleGrey80
 import com.example.trackertest.ui.theme.TrackerTestTheme
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
@@ -146,64 +151,363 @@ fun MainScreen(activity:MainActivity, modifier: Modifier = Modifier) {
         }
         LazyColumn(modifier = Modifier.fillMaxWidth()){
             item{
-                NonsessionDataPanel("BloodPressure", tracker.bpCollector.dataStorage, modifier = Modifier.fillMaxWidth().background(Color(0.7f, 0.7f, 0.7f, 0.9f)))
+                NonsessionDataPanel(
+                    "ActiveCaloriesBurnedGoal", tracker.acbCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as ActiveCaloriesBurnedGoalCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("goalSetTime",item.goalSetTime.toString()),
+                        Pair("activeCaloriesBurned", item.activeCaloriesBurned.toString())
+                    )
+                    valueMap
+                }
             }
             item{
-                SessionDataPanel("BloodOxygen",tracker.boCollector.metadataStorage, tracker.boCollector.dataStorage , modifier = Modifier.fillMaxWidth().background(Color(0.7f, 0.7f, 0.7f, 0.9f)))
+                NonsessionDataPanel(
+                    "ActiveTimeGoal", tracker.atCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as ActiveTimeGoalCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("goalSetTime",item.goalSetTime.toString()),
+                        Pair("activeTime", item.activeTime.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "BloodPressure", tracker.bpCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                    it->
+                    val item = it as BloodPressureCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("uid",item.uid),
+                        Pair("timestamp",item.timestamp.toString()),
+                        Pair("systolic", item.systolic.toString()),
+                        Pair("diastolic", item.diastolic.toString()),
+                        Pair("pulseRate", item.pulseRate.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "BodyComposition", tracker.bodyCompositionCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                    it->
+                    val item = it as BodyCompositionCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("uid",item.uid),
+                        Pair("timestamp",item.timestamp.toString()),
+                        Pair("bodyFatRatio", item.bodyFatRatio.toString()),
+                        Pair("weight", item.weight.toString()),
+                        Pair("height", item.height.toString()),
+                        Pair("muscleMass", item.muscleMass.toString()),
+                        Pair("skeletalMuscleRatio", item.skeletalMuscleRatio.toString()),
+                        Pair("totalBodyWater", item.totalBodyWater.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "Device", tracker.devCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as DeviceCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("id", item.id),
+                        Pair("deviceType",item.deviceType),
+                        Pair("model",item.model),
+                        Pair("name",item.name),
+                        Pair("manufacturer", item.manufacturer)
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "NutritionGoal", tracker.nutCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as NutritionGoalCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("goalSetTime",item.goalSetTime.toString()),
+                        Pair("calories", item.calories.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "SleepGoal", tracker.sleepGoalCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as SleepGoalCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("goalSetTime",item.goalSetTime.toString()),
+                        Pair("wakeUpTime", item.wakeUpTime.toString()),
+                        Pair("bedTime", item.bedTime.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "Step", tracker.stepCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as StepCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("startTime", item.startTime.toString()),
+                        Pair("endTime", item.endTime.toString()),
+                        Pair("steps", item.steps.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "StepGoal", tracker.stepGoalCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as StepGoalCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("goalSetTime",item.goalSetTime.toString()),
+                        Pair("steps", item.steps.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "WaterIntake", tracker.waterCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as WaterIntakeCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("uid", item.uid),
+                        Pair("timestamp", item.timestamp.toString()),
+                        Pair("amount", item.amount.toString())
+                    )
+                    valueMap
+                }
+            }
+            item{
+                NonsessionDataPanel(
+                    "WaterIntakeGoal", tracker.waterGoalCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ){
+                        it->
+                    val item = it as WaterIntakeGoalCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("goalSetTime", item.goalSetTime.toString()),
+                        Pair("amount", item.amount.toString())
+                    )
+                    valueMap
+                }
+            }
+            item {
+                SessionDataPanel(
+                    "BloodOxygen",
+                    tracker.boCollector.metadataStorage,
+                    tracker.boCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    { it ->
+                        val item = it as BloodOxygenCollector.MetadataEntity
+                        val valueMap = mapOf(
+                            Pair("uid", item.uid),
+                            Pair("startTime", item.startTime.toString()),
+                            Pair("endTime", item.endTime.toString()),
+                            Pair("oxygenSaturation", item.oxygenSaturation.toString())
+                        )
+                        valueMap
+                    },
+                    { it ->
+                        val item = it as BloodOxygenCollector.Entity
+                        val valueMap = mapOf(
+                            Pair("uid", item.uid),
+                            Pair("startTime", item.startTime.toString()),
+                            Pair("endTime", item.endTime.toString()),
+                            Pair("oxygenSaturation", item.oxygenSaturation.toString()),
+                            Pair("max", item.max.toString()),
+                            Pair("min", item.min.toString())
+                        )
+                        valueMap
+                    }
+                )
+            }
+            item {
+                SessionDataPanel(
+                    "HeartRate",
+                    tracker.hrCollector.metadataStorage,
+                    tracker.hrCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    { it ->
+                        val item = it as HeartRateCollector.MetadataEntity
+                        val valueMap = mapOf(
+                            Pair("uid", item.uid),
+                            Pair("startTime", item.startTime.toString()),
+                            Pair("endTime", item.endTime.toString()),
+                            Pair("heartRateSaturation", item.heartRate.toString())
+                        )
+                        valueMap
+                    },
+                    { it ->
+                        val item = it as HeartRateCollector.Entity
+                        val valueMap = mapOf(
+                            Pair("uid", item.uid),
+                            Pair("startTime", item.startTime.toString()),
+                            Pair("endTime", item.endTime.toString()),
+                            Pair("heartRateSaturation", item.heartRate.toString()),
+                            Pair("max", item.max.toString()),
+                            Pair("min", item.min.toString())
+                        )
+                        valueMap
+                    }
+                )
+            }
+            item {
+                SessionDataPanel(
+                    "SkinTemperature",
+                    tracker.stCollector.metadataStorage,
+                    tracker.stCollector.dataStorage,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    { it ->
+                        val item = it as SkinTemperatureCollector.MetadataEntity
+                        val valueMap = mapOf(
+                            Pair("uid", item.uid),
+                            Pair("startTime", item.startTime.toString()),
+                            Pair("endTime", item.endTime.toString()),
+                            Pair("skinTemperature", item.skinTemperature.toString())
+                        )
+                        valueMap
+                    },
+                    { it ->
+                        val item = it as SkinTemperatureCollector.Entity
+                        val valueMap = mapOf(
+                            Pair("uid", item.uid),
+                            Pair("startTime", item.startTime.toString()),
+                            Pair("endTime", item.endTime.toString()),
+                            Pair("skinTemperature", item.skinTemperature.toString()),
+                            Pair("max", item.max.toString()),
+                            Pair("min", item.min.toString())
+                        )
+                        valueMap
+                    }
+                )
             }
         }
     }
 }
 @Composable
-fun NamedPanel(name:String, modifier:Modifier = Modifier, content:@Composable ()->Unit){
+fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier:Modifier = Modifier, content:@Composable ()->Unit){
     Column(
-        modifier=modifier,
+        modifier=modifier.background(PurpleGrey80),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        var isOpened by remember {mutableStateOf(true)}
         Row(
-            modifier=Modifier.fillMaxWidth().background(Color(0.92f,0.98f,0.95f)),
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier=Modifier
+                .fillMaxWidth()
+                .background(Purple40),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment =  Alignment.CenterVertically
         ){
-            Text(text=name, fontSize=20.sp, fontWeight=FontWeight.SemiBold, modifier=Modifier.padding(4.dp))
+            Text(text=name, color=Color.White, fontSize=20.sp, fontWeight=FontWeight.SemiBold, modifier=Modifier.padding(4.dp))
             Button(onClick = {
-                isOpened = !isOpened
+                isOpened.value = !isOpened.value
             }){
-                Text(text=if (isOpened) "Close" else "Open")
+                Text(text=if (isOpened.value) "Close" else "Open")
             }
         }
-        if(isOpened)
+        if(isOpened.value)
             content()
     }
 }
 
 @Composable
-fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier){
-    NamedPanel(name, modifier){
+fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier, dataKeyMapGen:(it:DataEntity)->Map<String, String>){
+    val isOpened = remember{mutableStateOf(false)}
+    NamedPanel("$name(${dataList.size})", isOpened, modifier.border(1.dp, Color.Black)){
         Column{
             dataList.forEach{
-                Text(text=it.toString())
+                DataEntityWidget(dataKeyMapGen(it))
             }
         }
     }
 }
 
 @Composable
-fun SessionDataPanel(name:String,metadataList:List<DataEntity>, dataList:List<DataEntity>, modifier: Modifier = Modifier){
-    NamedPanel(name, modifier){
-        NamedPanel("Metadata", modifier){
+fun SessionDataPanel(
+    name:String, metadataList:List<DataEntity>,
+    dataList:List<DataEntity>, modifier: Modifier = Modifier,
+    metadataKeyMapGen:(it:DataEntity)->Map<String, String>,
+    dataKeyMapGen:(it:DataEntity)->Map<String, String>
+){
+    val isOpened = remember{mutableStateOf(false)}
+    val isMetaOpened = remember{mutableStateOf(false)}
+    val isRecordOpened = remember{mutableStateOf(false)}
+    NamedPanel(name, isOpened, modifier.border(1.dp, Color.Black)){
+        NamedPanel("Metadata(${metadataList.size})", isMetaOpened, modifier){
             Column {
-                metadataList.forEach {
-                    Text(text = it.toString())
+                metadataList.forEach{
+                    DataEntityWidget(metadataKeyMapGen(it))
                 }
             }
         }
-        NamedPanel("Records", modifier) {
+        NamedPanel("Records(${dataList.size})", isRecordOpened, modifier) {
             Column {
                 dataList.forEach {
-                    Text(text = it.toString())
+                    DataEntityWidget(dataKeyMapGen(it))
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun DataEntityWidget(keyVal:Map<String, String>, modifier:Modifier = Modifier){
+    Column(
+        modifier = modifier.fillMaxWidth()
+    ){
+        var i = 0;
+        keyVal.forEach{
+            val rowModifier = if (i == 0)Modifier.fillMaxWidth().background(Purple80) else Modifier.fillMaxWidth()
+            Row(
+                modifier = rowModifier,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ){
+                Text(text = it.key)
+                Text(text = it.value)
+            }
+            i++;
         }
     }
 }
