@@ -474,14 +474,14 @@ fun SessionDataPanel(
     val isMetaOpened = remember{mutableStateOf(false)}
     val isRecordOpened = remember{mutableStateOf(false)}
     NamedPanel(name, isOpened, modifier.border(1.dp, Color.Black)){
-        NamedPanel("Metadata(${metadataList.size})", isMetaOpened, modifier){
+        NamedPanel(" - Metadata(${metadataList.size})", isMetaOpened, modifier){
             Column {
                 metadataList.forEach{
                     DataEntityWidget(metadataKeyMapGen(it))
                 }
             }
         }
-        NamedPanel("Records(${dataList.size})", isRecordOpened, modifier) {
+        NamedPanel(" - Records(${dataList.size})", isRecordOpened, modifier) {
             Column {
                 dataList.forEach {
                     DataEntityWidget(dataKeyMapGen(it))
