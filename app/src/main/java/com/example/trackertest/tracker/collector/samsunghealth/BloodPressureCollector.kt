@@ -109,6 +109,9 @@ class BloodPressureCollector(
             val pulseRate:Int? = minItem.upsertDataPoint.getValue(DataType.BloodPressureType.PULSE_RATE)
             val medicationTaken:Boolean? = minItem.upsertDataPoint.getValue(DataType.BloodPressureType.MEDICATION_TAKEN)
 
+            val appId:String? = minItem.upsertDataPoint.dataSource?.appId
+            val mDeviceId:String? = minItem.upsertDataPoint.dataSource?.deviceId
+
             return Entity(
                 System.currentTimeMillis(),
                 uid,
@@ -116,7 +119,9 @@ class BloodPressureCollector(
                 diastolic?:Float.NaN,
                 systolic?:Float.NaN,
                 pulseRate?:-1,
-                medicationTaken?:false
+                medicationTaken?:false,
+                appId?:"UNKNOWN",
+                mDeviceId?:"UNKNOWN"
             )
         }
         return null
@@ -146,6 +151,10 @@ class BloodPressureCollector(
                 val systolic:Float? = it.upsertDataPoint.getValue(DataType.BloodPressureType.SYSTOLIC)
                 val pulseRate:Int? = it.upsertDataPoint.getValue(DataType.BloodPressureType.PULSE_RATE)
                 val medicationTaken:Boolean? = it.upsertDataPoint.getValue(DataType.BloodPressureType.MEDICATION_TAKEN)
+
+                val appId:String? = it.upsertDataPoint.dataSource?.appId
+                val mDeviceId:String? = it.upsertDataPoint.dataSource?.deviceId
+
                 entityList.add(
                     Entity(
                         System.currentTimeMillis(),
@@ -154,7 +163,9 @@ class BloodPressureCollector(
                         diastolic?:Float.NaN,
                         systolic?:Float.NaN,
                         pulseRate?:-1,
-                        medicationTaken?:false
+                        medicationTaken?:false,
+                        appId?:"UNKNOWN",
+                        mDeviceId?:"UNKNOWN"
                     )
                 )
             }
@@ -207,5 +218,7 @@ class BloodPressureCollector(
         val systolic : Float,
         val pulseRate : Int,
         val medicationTaken: Boolean,
+        val appId:String,
+        val mDeviceId:String,
     ) : DataEntity(received)
 }

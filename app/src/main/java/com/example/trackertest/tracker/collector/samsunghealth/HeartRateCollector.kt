@@ -91,6 +91,8 @@ class HeartRateCollector(
                 val heartRate:Float? = it.upsertDataPoint.getValue(DataType.HeartRateType.HEART_RATE)
                 val max:Float? = it.upsertDataPoint.getValue(DataType.HeartRateType.MAX_HEART_RATE)
                 val min:Float? = it.upsertDataPoint.getValue(DataType.HeartRateType.MIN_HEART_RATE)
+                val appId:String? = it.upsertDataPoint.dataSource?.appId
+                val mDeviceId:String? = it.upsertDataPoint.dataSource?.deviceId
 
                 val entityList:MutableList<Entity> = mutableListOf()
                 val measurements:List<HeartRate>? = it.upsertDataPoint.getValue(DataType.HeartRateType.SERIES_DATA)
@@ -120,7 +122,9 @@ class HeartRateCollector(
                             uid,
                             startTime,
                             endTime?:startTime,
-                            heartRate?:Float.NaN
+                            heartRate?:Float.NaN,
+                            appId?:"UNKNOWN",
+                            mDeviceId?:"UNKNOWN"
                         ),
                         entityList
                     )
@@ -166,9 +170,9 @@ class HeartRateCollector(
         val uid : String,
         val startTime : Long,
         val endTime : Long,
-        val heartRate: Float
-        //val appId: String,
-        //val deviceId: String
+        val heartRate: Float,
+        val appId: String,
+        val mDeviceId: String
     ) : DataEntity(received)
 
     data class Entity(

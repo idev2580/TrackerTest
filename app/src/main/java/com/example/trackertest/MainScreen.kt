@@ -220,6 +220,8 @@ fun MainScreen(
                             val item = it as BloodPressureCollector.Entity
                             val valueMap = mapOf(
                                 Pair("uid", item.uid),
+                                Pair("appId", item.appId),
+                                Pair("deviceId(sHealth)", item.mDeviceId),
                                 Pair("timestamp", item.timestamp.toString()),
                                 Pair("systolic", item.systolic.toString()),
                                 Pair("diastolic", item.diastolic.toString()),
@@ -365,6 +367,8 @@ fun MainScreen(
                         val item = it as BloodOxygenCollector.MetadataEntity
                         val valueMap = mapOf(
                             Pair("uid", item.uid),
+                            Pair("appId", item.appId),
+                            Pair("deviceId(shealth)", item.mDeviceId),
                             Pair("startTime", item.startTime.toString()),
                             Pair("endTime", item.endTime.toString()),
                             Pair("oxygenSaturation", item.oxygenSaturation.toString())
@@ -396,6 +400,8 @@ fun MainScreen(
                         val item = it as HeartRateCollector.MetadataEntity
                         val valueMap = mapOf(
                             Pair("uid", item.uid),
+                            Pair("appId", item.appId),
+                            Pair("deviceId(shealth)", item.mDeviceId),
                             Pair("startTime", item.startTime.toString()),
                             Pair("endTime", item.endTime.toString()),
                             Pair("heartRateSaturation", item.heartRate.toString())
@@ -427,6 +433,8 @@ fun MainScreen(
                         val item = it as SkinTemperatureCollector.MetadataEntity
                         val valueMap = mapOf(
                             Pair("uid", item.uid),
+                            Pair("appId", item.appId),
+                            Pair("deviceId(shealth)", item.mDeviceId),
                             Pair("startTime", item.startTime.toString()),
                             Pair("endTime", item.endTime.toString()),
                             Pair("skinTemperature", item.skinTemperature.toString())
@@ -447,9 +455,6 @@ fun MainScreen(
                     }
                 )
             }
-        }
-        LazyColumn(modifier = Modifier.fillMaxWidth()){
-
         }
 
         /*LazyColumn(modifier = Modifier.fillMaxWidth()) {

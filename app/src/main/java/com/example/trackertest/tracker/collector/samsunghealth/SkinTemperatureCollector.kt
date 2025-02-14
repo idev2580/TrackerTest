@@ -92,6 +92,8 @@ class SkinTemperatureCollector(
                 val skinTemperature:Float? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.SKIN_TEMPERATURE)
                 val max:Float? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.MAX_SKIN_TEMPERATURE)
                 val min:Float? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.MIN_SKIN_TEMPERATURE)
+                val appId:String? = it.upsertDataPoint.dataSource?.appId
+                val mDeviceId:String? = it.upsertDataPoint.dataSource?.deviceId
 
                 val entityList:MutableList<Entity> = mutableListOf()
                 val measurements:List<SkinTemperature>? = it.upsertDataPoint.getValue(DataType.SkinTemperatureType.SERIES_DATA)
@@ -121,7 +123,9 @@ class SkinTemperatureCollector(
                             uid,
                             startTime,
                             endTime?:startTime,
-                            skinTemperature?:Float.NaN
+                            skinTemperature?:Float.NaN,
+                            appId?:"UNKNOWN",
+                            mDeviceId?:"UNKNOWN"
                         ),
                         entityList
                     )
@@ -167,9 +171,9 @@ class SkinTemperatureCollector(
         val uid : String,
         val startTime : Long,
         val endTime : Long,
-        val skinTemperature: Float
-        //val appId: String,
-        //val deviceId: String
+        val skinTemperature: Float,
+        val appId: String,
+        val mDeviceId: String
     ) : DataEntity(received)
 
     data class Entity(

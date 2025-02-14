@@ -146,6 +146,15 @@ class SampleTracker(
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )
+    init{
+        //For step collector and device collector, need to remove duplicate data
+        /*devCollector.collector.listener = {
+
+        }
+        stepCollector.collector.listener = {
+
+        }*/
+    }
 
     fun start(){
         acbCollector.start()

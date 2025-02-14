@@ -107,6 +107,9 @@ class BodyCompositionCollector(
             //Katch-McArdle formula shows the closest result to Samsung Health's one.
             val basalMetabolicRate:Float? = minItem.upsertDataPoint.getValue(DataType.BodyCompositionType.BASAL_METABOLIC_RATE)?.toFloat()
 
+            val appId:String? = minItem.upsertDataPoint.dataSource?.appId
+            val mDeviceId:String? = minItem.upsertDataPoint.dataSource?.deviceId
+
             return Entity(
                 System.currentTimeMillis(),
                 uid,
@@ -117,7 +120,9 @@ class BodyCompositionCollector(
                 skeletalMuscleRatio?:Float.NaN,
                 totalBodyWater?:Float.NaN,
                 muscleMass?:Float.NaN,
-                basalMetabolicRate?:Float.NaN
+                basalMetabolicRate?:Float.NaN,
+                appId?:"UNKNOWN",
+                mDeviceId?:"UNKNOWN"
             )
         }
         return null
@@ -151,6 +156,9 @@ class BodyCompositionCollector(
                 //Katch-McArdle formula shows the closest result to Samsung Health's one.
                 val basalMetabolicRate:Float? = it.upsertDataPoint.getValue(DataType.BodyCompositionType.BASAL_METABOLIC_RATE)?.toFloat()
 
+                val appId:String? = it.upsertDataPoint.dataSource?.appId
+                val mDeviceId:String? = it.upsertDataPoint.dataSource?.deviceId
+
                 entityList.add(
                     Entity(
                         System.currentTimeMillis(),
@@ -162,7 +170,9 @@ class BodyCompositionCollector(
                         skeletalMuscleRatio?:Float.NaN,
                         totalBodyWater?:Float.NaN,
                         muscleMass?:Float.NaN,
-                        basalMetabolicRate?:Float.NaN
+                        basalMetabolicRate?:Float.NaN,
+                        appId?:"UNKNOWN",
+                        mDeviceId?:"UNKNOWN"
                     )
                 )
             }
@@ -218,5 +228,8 @@ class BodyCompositionCollector(
         val totalBodyWater : Float,
         val muscleMass : Float,
         val basalMetabolicRate : Float, //This should be calculated by above values, but samsung didn't share what formula they used.
+
+        val appId:String,
+        val mDeviceId:String,
     ) : DataEntity(received)
 }

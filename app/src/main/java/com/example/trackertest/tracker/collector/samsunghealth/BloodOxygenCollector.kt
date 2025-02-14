@@ -89,6 +89,9 @@ class BloodOxygenCollector(
                 val uid:String = it.upsertDataPoint.uid
                 val startTime:Long = it.upsertDataPoint.startTime.toEpochMilli()
                 val endTime:Long? = it.upsertDataPoint.endTime?.toEpochMilli()
+                val appId:String? = it.upsertDataPoint.dataSource?.appId
+                val mDeviceId:String? = it.upsertDataPoint.dataSource?.deviceId
+
                 val oxygenSaturation:Float? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.OXYGEN_SATURATION)
                 val max:Float? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.MAX_OXYGEN_SATURATION)
                 val min:Float? = it.upsertDataPoint.getValue(DataType.BloodOxygenType.MIN_OXYGEN_SATURATION)
@@ -121,7 +124,9 @@ class BloodOxygenCollector(
                             uid,
                             startTime,
                             endTime?:startTime,
-                            oxygenSaturation ?:Float.NaN
+                            oxygenSaturation ?:Float.NaN,
+                            appId?:"UNKNOWN",
+                            mDeviceId?:"UNKNOWN"
                         ), entityList
                     )
                 )
@@ -166,9 +171,9 @@ class BloodOxygenCollector(
         val uid : String,
         val startTime : Long,
         val endTime : Long,
-        val oxygenSaturation: Float
-        //val appId: String,
-        //val deviceId: String
+        val oxygenSaturation: Float,
+        val appId: String,
+        val mDeviceId: String
     ) : DataEntity(received)
 
     data class Entity(

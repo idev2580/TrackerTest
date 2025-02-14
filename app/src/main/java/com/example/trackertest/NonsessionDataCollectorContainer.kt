@@ -18,7 +18,7 @@ class NonsessionDataCollectorContainer<T:AbstractCollector<*,*>>(val collector:T
         try {
             return collector.stop()
         } catch (e:Exception){
-            Log.w("TAG", "SessionDataCollectorContainer : Collector for ${collector.getEntityClass()}'s stop() made error")
+            Log.w("TAG", "NonsessionDataCollectorContainer : Collector for ${collector.getEntityClass()}'s stop() made error")
             return Unit
         }
     }

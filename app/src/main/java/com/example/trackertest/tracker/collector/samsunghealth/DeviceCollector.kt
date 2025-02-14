@@ -89,7 +89,7 @@ class DeviceCollector(
             val deviceName = device.name ?: ""
 
             if(!(deviceId in readDeviceInfo)){
-                Log.d("TAG", "DeviceCollector : New device detected(name=$deviceName, type=$deviceType, id=$deviceId)")
+                Log.d("TAG", "DeviceCollector : Device detected(name=$deviceName, type=$deviceType, id=$deviceId)")
             }
             readDeviceInfo[deviceId] = Entity(
                 System.currentTimeMillis(),
