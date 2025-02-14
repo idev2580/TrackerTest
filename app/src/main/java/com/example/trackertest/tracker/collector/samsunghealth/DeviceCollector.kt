@@ -68,10 +68,18 @@ class DeviceCollector(
 
     private var job: Job? = null
 
-    val readDeviceInfo:MutableMap<String, Entity> = mutableMapOf()
-    suspend fun readData(manager: DeviceManager): Entity?{
-        val mobileDevices = manager.getDevices(DeviceGroup.MOBILE)
-        val devices = manager.getDevices(DeviceGroup.OTHER) + mobileDevices
+    val deviceInfo:MutableMap<String, Entity> = mutableMapOf()
+    suspend fun readMapData(manager: DeviceManager): Map<String,Entity>{
+        //What a dirty code from absence of DeviceGroup.ALL
+        val mobiles = manager.getDevices(DeviceGroup.MOBILE)
+        val watches = manager.getDevices(DeviceGroup.WATCH)
+        val bands = manager.getDevices(DeviceGroup.BAND)
+        val rings = manager.getDevices(DeviceGroup.RING)
+        val accessories = manager.getDevices(DeviceGroup.ACCESSORY)
+        val others = manager.getDevices(DeviceGroup.OTHER)
+        val devices = mobiles + watches + bands + rings + accessories + others
+
+        val readDeviceInfo:MutableMap<String, Entity> = mutableMapOf()
         devices.forEach{
             device ->
             val deviceId = device.id
@@ -100,7 +108,7 @@ class DeviceCollector(
                 deviceName
             )
         }
-        return null
+        return readDeviceInfo
     }
     override fun start() {
         super.start()
@@ -113,13 +121,14 @@ class DeviceCollector(
                 val timestamp = System.currentTimeMillis()
                 Log.d("TAG", "DeviceCollector: $timestamp")
 
-                val readEntity = readData(deviceManager)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
+                val readEntity = readMapData(deviceManager)
+                readEntity.forEach{
+                    it->
+                    if(!(it.key in deviceInfo)){
+                        deviceInfo[it.key] = it.value
+                        listener?.invoke(it.value)
+                    }
                 }
-
                 sleep(configFlow.value.interval)
             }
         }
