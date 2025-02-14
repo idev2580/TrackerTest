@@ -298,7 +298,7 @@ fun MainScreen(
                     }
                     item {
                         NonsessionDataPanel(
-                            "Step", tracker.stepCollector.dataStorage,
+                            "Step", tracker.stepCollector.dataStorage.values.toList(),
                             modifier = Modifier
                                 .fillMaxWidth()
                         ) { it ->

@@ -122,7 +122,7 @@ class SampleTracker(
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )
-    val stepCollector = NonsessionDataCollectorContainer<StepCollector>(
+    val stepCollector = StepDataCollectorContainer(
         StepCollector(
             context,
             DummyPermissionManager(),
@@ -148,12 +148,6 @@ class SampleTracker(
     )
     init{
         //For step collector and device collector, need to remove duplicate data
-        /*devCollector.collector.listener = {
-
-        }
-        stepCollector.collector.listener = {
-
-        }*/
     }
 
     fun start(){

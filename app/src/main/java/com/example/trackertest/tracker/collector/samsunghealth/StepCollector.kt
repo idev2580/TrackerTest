@@ -77,7 +77,8 @@ class StepCollector(
 
         return LocalTimeFilter.of(sTime, eTime)
     }
-    suspend fun readGoal(store: HealthDataStore):Entity?{
+
+    suspend fun readData(store: HealthDataStore):Entity?{
         //지금 시간이 포함되어 있는 Timeslot의 Steps 정보를 읽어온다.
         val timeFilter = getTimeFilter()
         val req = DataType.StepsType
@@ -98,7 +99,7 @@ class StepCollector(
             if(step != null){
                 Log.d("TAG", "StepCollector : $step steps in $startTime~$endTime")
                 return Entity(
-                    0,
+                    System.currentTimeMillis(),
                     step,
                     startTime,
                     endTime
@@ -118,7 +119,7 @@ class StepCollector(
                 Log.d("TAG", "StepCollector: $timestamp")
 
                 //TODO : Insert only if this entity's timeslot is new. Else, do update instead of insertion.
-                val readEntity = readGoal(store)
+                val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
