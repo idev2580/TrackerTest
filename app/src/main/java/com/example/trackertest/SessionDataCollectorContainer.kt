@@ -8,7 +8,7 @@ import com.example.trackertest.tracker.collector.core.DataEntity
 import com.example.trackertest.tracker.collector.samsunghealth.AbstractMeasurementSessionCollector
 
 class SessionDataCollectorContainer<
-        T: AbstractMeasurementSessionCollector<*, *, *>>(val collector:T) : ViewModel(){
+        T: AbstractMeasurementSessionCollector<*, *, *>>(val collector:T){
     val metadataStorage:MutableList<DataEntity> = mutableStateListOf()
     val dataStorage:MutableList<DataEntity> = mutableStateListOf()
     init{

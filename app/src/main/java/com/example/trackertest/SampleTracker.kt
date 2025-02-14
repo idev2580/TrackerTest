@@ -1,7 +1,7 @@
 package com.example.trackertest
 
-import android.bluetooth.BluetoothClass.Device
 import android.content.Context
+import androidx.lifecycle.ViewModel
 import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
@@ -22,7 +22,9 @@ import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeGoalCo
 import com.example.trackertest.tracker.data.DummySingletonStorage
 import com.example.trackertest.tracker.permission.DummyPermissionManager
 
-class SampleTracker(val context: Context) {
+class SampleTracker(
+    val context: Context
+) : ViewModel() {
     val acbCollector = NonsessionDataCollectorContainer<ActiveCaloriesBurnedGoalCollector>(
         ActiveCaloriesBurnedGoalCollector(
             context,
