@@ -70,6 +70,7 @@ class StepCollector(
 
     private var job: Job? = null
 
+    private val syncPastLimitDays:Long = 0
     private val syncUnitTimeMinutes:Long = 10
     private val syncUnitTimeMillis:Long = syncUnitTimeMinutes * 60000
 
@@ -91,6 +92,7 @@ class StepCollector(
         val sTime = inputStime
             .minusMinutes((inputStime.minute % syncUnitTimeMinutes).toLong())
             .truncatedTo(ChronoUnit.MINUTES)
+            .minusDays(syncPastLimitDays)
 
             //.minusSeconds(inputStime.second.toLong())
             //.minusNanos(inputStime.nano.toLong())

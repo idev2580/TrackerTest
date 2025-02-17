@@ -55,7 +55,7 @@ class SamsungHealthPermissionManager(val activity:MainActivity):PermissionManage
                             val isGranted:Boolean = res.containsAll(permSet)
                             if(!isGranted){
                                 //Still not have permissions
-                                Toast.makeText(context, "Permission not granted", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "모든 권한을 허용해주세요.", Toast.LENGTH_SHORT).show()
                             }
                             onResult?.invoke(isGranted)
                             //runnable.run()
@@ -77,7 +77,7 @@ class SamsungHealthPermissionManager(val activity:MainActivity):PermissionManage
                     // An exception to indicate that the Samsung Health platform is not ready to serve the specified operation.
                 } else if (error is AuthorizationException) {
                     // An exception to indicate that the application is not authorized to perform given operation.
-                    Toast.makeText(context, "Devmode in Samsung Health is not enabled.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "삼성 헬스 개발자 모드가 활성화되어 있지 않습니다.", Toast.LENGTH_SHORT).show()
                 } else if (error is InvalidRequestException) {
                     // An exception to indicate that the application requests the given operation with invalid conditions.
                 } else if (error is PlatformInternalException) {

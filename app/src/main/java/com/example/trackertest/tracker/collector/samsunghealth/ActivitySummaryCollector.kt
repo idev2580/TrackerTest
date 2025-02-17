@@ -69,7 +69,9 @@ class ActivitySummaryCollector(
 
     private var job: Job? = null
 
-    var latestDataTimestamp:Long = -1L
+    private val syncPastLimitDays:Long = 0
+    private val syncPastLimitMillis:Long = syncPastLimitDays * 24L * 3600L * 1000L
+    private var latestDataTimestamp:Long = -1L
 
     fun getTimeFilter():LocalTimeFilter{
         //Log.d("TAG", "ActivitySummary.getTimeFilter() : latestDataTimestamp=$latestDataTimestamp")
@@ -77,7 +79,7 @@ class ActivitySummaryCollector(
 
         //val targetTimestamp = if(latestDataTimestamp == -1L) (currentTimestamp - 30L * 24L * 3600L * 1000L) else latestDataTimestamp
         //Activity summary for 1 month is too large to compute, just gather data for 7 days
-        val targetTimestamp = if(latestDataTimestamp == -1L) (currentTimestamp - 7L * 24L * 3600L * 1000L) else latestDataTimestamp
+        val targetTimestamp = if(latestDataTimestamp == -1L) (currentTimestamp - syncPastLimitMillis) else latestDataTimestamp
 
         val nowDateTime = LocalDateTime.ofInstant(
             Instant.ofEpochMilli(targetTimestamp),
