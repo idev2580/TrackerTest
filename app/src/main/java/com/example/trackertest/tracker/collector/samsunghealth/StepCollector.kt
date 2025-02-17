@@ -24,6 +24,8 @@ import java.lang.Thread.sleep
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -67,14 +69,32 @@ class StepCollector(
     }
 
     private var job: Job? = null
+
+    private val syncUnitTimeMinutes:Long = 10
+    private val syncUnitTimeMillis:Long = syncUnitTimeMinutes * 60000
+
     fun getTimeFilter(): LocalTimeFilter {
         val now = LocalDateTime.now()
         val sTime = now
-            .minusMinutes((now.minute % 10).toLong())
+            .minusMinutes((now.minute % syncUnitTimeMinutes).toLong())
             .minusSeconds(now.second.toLong())
             .minusNanos(now.nano.toLong())
-        val eTime = sTime.plusMinutes(10)
+        val eTime = sTime.plusMinutes(syncUnitTimeMinutes)
+        return LocalTimeFilter.of(sTime, eTime)
+    }
+    fun getTimeFilter(inputTime:Long):LocalTimeFilter {
+        val inputStime:LocalDateTime =
+            if(inputTime != -1L)
+                Instant.ofEpochMilli(inputTime).atZone(ZoneId.systemDefault()).toLocalDateTime()
+            else
+                LocalDateTime.now().truncatedTo(ChronoUnit.DAYS)
+        val sTime = inputStime
+            .minusMinutes((inputStime.minute % syncUnitTimeMinutes).toLong())
+            .truncatedTo(ChronoUnit.MINUTES)
 
+            //.minusSeconds(inputStime.second.toLong())
+            //.minusNanos(inputStime.nano.toLong())
+        val eTime = sTime.plusMinutes(syncUnitTimeMinutes)
         return LocalTimeFilter.of(sTime, eTime)
     }
 
@@ -108,6 +128,49 @@ class StepCollector(
         }
         return null
     }
+    suspend fun readAllData(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
+        val timestamp = System.currentTimeMillis()
+        var loop = true
+        var syncTarget = since
+        while(loop){
+            val timeFilter = getTimeFilter(syncTarget)
+            syncTarget = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            Log.d("StepCollector","readAllData() : syncTarget=$syncTarget, endTime=${timeFilter.endTime}")
+            if(timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() >= timestamp)
+                loop = false
+
+            val req = DataType.StepsType
+                .TOTAL
+                .requestBuilder
+                .setLocalTimeFilter(timeFilter)
+                .setOrdering(Ordering.DESC)
+                .build()
+
+            val resList = store.aggregateData(req).dataList
+
+            val startTime = timeFilter.startTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val endTime = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+            //Log.d("TAG", "StepCollector : $startTime~$endTime")
+            if(resList.isNotEmpty()){
+                val step:Long? = resList.first().value?.toLong()
+                if(step != null){
+                    Log.d("StepCollector", "$step steps in $startTime~$endTime")
+                    listener?.invoke(
+                        Entity(
+                            System.currentTimeMillis(),
+                            step,
+                            startTime,
+                            endTime
+                        )
+                    )
+                }
+            }
+        }
+        return timestamp
+    }
+
+    var lastSynced:Long = -1
     override fun start() {
         super.start()
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -116,15 +179,16 @@ class StepCollector(
             val latestGoalSetTime:Long = -1;
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "StepCollector: $timestamp")
 
                 //TODO : Insert only if this entity's timeslot is new. Else, do update instead of insertion.
-                val readEntity = readData(store)
+                lastSynced = readAllData(store, lastSynced, listener)
+                Log.d("StepCollector", "Synced at : $timestamp")
+                /*val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
-                }
+                }*/
 
                 sleep(configFlow.value.interval)
             }
