@@ -2,6 +2,7 @@ package com.example.trackertest
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,40 +73,18 @@ fun MainScreen(
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
-    val permSet = setOf(
-        Permission.of(DataTypes.ACTIVITY_SUMMARY, AccessType.READ),
-        Permission.of(DataTypes.ACTIVE_CALORIES_BURNED_GOAL, AccessType.READ),
-        Permission.of(DataTypes.ACTIVE_TIME_GOAL, AccessType.READ),
-        Permission.of(DataTypes.BLOOD_GLUCOSE, AccessType.READ),
-        Permission.of(DataTypes.BLOOD_OXYGEN, AccessType.READ),
-        Permission.of(DataTypes.BLOOD_PRESSURE, AccessType.READ),
-        Permission.of(DataTypes.BODY_COMPOSITION, AccessType.READ),
-        Permission.of(DataTypes.EXERCISE, AccessType.READ),
-        Permission.of(DataTypes.EXERCISE_LOCATION, AccessType.READ),
-        Permission.of(DataTypes.FLOORS_CLIMBED, AccessType.READ),
-        Permission.of(DataTypes.HEART_RATE, AccessType.READ),
-        Permission.of(DataTypes.NUTRITION, AccessType.READ),
-        Permission.of(DataTypes.NUTRITION_GOAL, AccessType.READ),
-        Permission.of(DataTypes.SKIN_TEMPERATURE, AccessType.READ),
-        Permission.of(DataTypes.SLEEP, AccessType.READ),
-        Permission.of(DataTypes.SLEEP_GOAL, AccessType.READ),
-        Permission.of(DataTypes.STEPS, AccessType.READ),
-        Permission.of(DataTypes.STEPS_GOAL, AccessType.READ),
-        Permission.of(DataTypes.USER_PROFILE, AccessType.READ),
-        Permission.of(DataTypes.WATER_INTAKE, AccessType.READ),
-        Permission.of(DataTypes.WATER_INTAKE_GOAL, AccessType.READ)
-    )
-    val tracker: SampleTracker by remember { mutableStateOf(SampleTracker(context)) }
-    var isStarted by remember { mutableStateOf(false) }
+    val permManager = SamsungHealthPermissionManager(activity)
 
-    LaunchedEffect(context) {
-        try {
-            checkAndRequestPermissions(context, activity, permSet)
-        } catch (e: Exception) {
-            Log.d("TRACKER_TEST", "FAILED TO GET PERMISSION")
+    permManager.request(arrayOf()){
+        res -> if(!res){
+            Toast.makeText(context, "Permission not granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.d("TAG", "All permissions granted")
         }
     }
 
+    val tracker: SampleTracker by remember { mutableStateOf(SampleTracker(context)) }
+    var isStarted by remember { mutableStateOf(false) }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
