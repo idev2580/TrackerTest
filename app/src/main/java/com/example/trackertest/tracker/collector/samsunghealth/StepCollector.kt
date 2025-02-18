@@ -136,8 +136,9 @@ class StepCollector(
         val timestamp = System.currentTimeMillis()
 
         //최근 걸음 정보를 불러와야 하기 때문에 분 단위로 내림한다.
+        //(워치 데이터는 실시간으로 휴대폰에 전송되지 않기 때문에 최소 1시간 여유를 두는 것)
         val fromTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(since), ZoneId.systemDefault())
-            .truncatedTo(ChronoUnit.MINUTES)
+            .truncatedTo(ChronoUnit.MINUTES).minusHours(1)
         val req = DataType.StepsType
             .TOTAL
             .requestBuilder
@@ -151,7 +152,7 @@ class StepCollector(
             .build()
         val resList = store.aggregateData(req).dataList
         Log.d("StepCollector", "readAllDataByGroup() : ${resList.size} step data loaded, timeFilter=since(${fromTime})")
-        var maxTime:Long = -1L
+        var maxTime:Long = since
         resList.forEach{ it->
             listener?.invoke(
                 Entity(
@@ -226,7 +227,7 @@ class StepCollector(
                 } catch (e: PlatformInternalException) {
                     //Do nothing
                     Log.e("StepCollector", "Sync Error at : $timestamp")
-                    Log.getStackTraceString(e)
+                    Log.e("StepCollector", Log.getStackTraceString(e))
                 }
 
                 /*val readEntity = readData(store)

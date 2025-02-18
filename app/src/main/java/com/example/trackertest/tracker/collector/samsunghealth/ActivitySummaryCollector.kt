@@ -199,7 +199,7 @@ class ActivitySummaryCollector(
         val caloriesBurnedList = store.aggregateData(caloriesBurnedReq).dataList
         val distanceList = store.aggregateData(distanceReq).dataList
 
-        var maxEndTime:Long = -1L
+        var maxEndTime:Long = since
         activeTimeList.forEach{ it ->
             val startTime = it.startTime.toEpochMilli()
             val endTime = it.endTime.toEpochMilli()
@@ -319,6 +319,7 @@ class ActivitySummaryCollector(
                 )
             }
         }
+        Log.d("ActivitySummaryCollector", "${resMap.size} summary data loaded, timeFilter=since(${timeFilter.startTime})")
         resMap.forEach{ it->
             listener?.invoke(it.value)
         }
