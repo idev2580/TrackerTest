@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -108,7 +109,10 @@ fun MainScreen(
         NavHost(
             navController = navController,
             startDestination = MainScreen.MAIN_SELECTION_SCREEN.name,
-            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp))
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp)),
         ){
             composable(route = MainScreen.MAIN_SELECTION_SCREEN.name){
                 LazyColumn(
@@ -382,7 +386,8 @@ fun MainScreen(
                     tracker.boCollector.metadataStorage,
                     tracker.boCollector.dataStorage,
                     modifier = Modifier
-                        .fillMaxSize(),
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
                     { it ->
                         val item = it as BloodOxygenCollector.MetadataEntity
                         val valueMap = mapOf(
@@ -415,7 +420,8 @@ fun MainScreen(
                     tracker.hrCollector.metadataStorage,
                     tracker.hrCollector.dataStorage,
                     modifier = Modifier
-                        .fillMaxSize(),
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
                     { it ->
                         val item = it as HeartRateCollector.MetadataEntity
                         val valueMap = mapOf(
@@ -448,7 +454,8 @@ fun MainScreen(
                     tracker.stCollector.metadataStorage,
                     tracker.stCollector.dataStorage,
                     modifier = Modifier
-                        .fillMaxSize(),
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
                     { it ->
                         val item = it as SkinTemperatureCollector.MetadataEntity
                         val valueMap = mapOf(

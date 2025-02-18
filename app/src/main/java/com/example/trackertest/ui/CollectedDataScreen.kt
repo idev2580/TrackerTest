@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -32,11 +33,12 @@ import com.example.trackertest.ui.theme.Purple40
 import com.example.trackertest.ui.theme.Purple80
 import com.example.trackertest.ui.theme.PurpleGrey40
 import com.example.trackertest.ui.theme.PurpleGrey80
+import com.example.trackertest.ui.theme.TrackerTestTheme
 import com.example.trackertest.ui.theme.White
 import com.example.trackertest.ui.theme.WhiteGrey
 
 @Composable
-fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier = Modifier, bg:Color = WhiteGrey, content:@Composable ()->Unit){
+fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier = Modifier, bg:Color = MaterialTheme.colorScheme.secondaryContainer, content:@Composable ()->Unit){
     Column(
         modifier=modifier.background(bg),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -44,11 +46,12 @@ fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier 
         Row(
             modifier= if(isOpened.value)
                 Modifier
-                    .background(Purple40)
+                    .background(MaterialTheme.colorScheme.secondary)
                     .padding(4.dp)
                     .fillMaxWidth()
             else
                 Modifier
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .padding(4.dp)
                     .fillMaxWidth()
                 ,
@@ -56,7 +59,11 @@ fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier 
             verticalAlignment =  Alignment.CenterVertically
         ){
             Text(text=name, color=
-                if(isOpened.value) Color.White else Color.Black,
+                if(isOpened.value)
+                    MaterialTheme.colorScheme.onSecondary
+                else
+                    MaterialTheme.colorScheme.onSurface
+                    ,
                 fontSize=18.sp, fontWeight= FontWeight.SemiBold, modifier= Modifier.padding(4.dp))
             Button(onClick = {
                 isOpened.value = !isOpened.value
@@ -148,16 +155,19 @@ fun DataEntityWidget(keyVal:Map<String, String>, modifier: Modifier = Modifier){
     ){
         var i = 0;
         keyVal.forEach{
-            val rowModifier = if (i == 0) Modifier
-                .fillMaxWidth()
-                .background(Purple80) else Modifier.fillMaxWidth()
+            val rowModifier =
+                if (i == 0)
+                    Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                else Modifier.fillMaxWidth()
             Row(
                 modifier = rowModifier,
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ){
-                Text(text = it.key)
-                Text(text = it.value)
+                Text(text = it.key, color=MaterialTheme.colorScheme.onBackground)
+                Text(text = it.value, color=MaterialTheme.colorScheme.onBackground)
             }
             i++;
         }
