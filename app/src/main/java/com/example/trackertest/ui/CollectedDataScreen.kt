@@ -20,6 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,21 +32,32 @@ import com.example.trackertest.ui.theme.Purple40
 import com.example.trackertest.ui.theme.Purple80
 import com.example.trackertest.ui.theme.PurpleGrey40
 import com.example.trackertest.ui.theme.PurpleGrey80
+import com.example.trackertest.ui.theme.White
+import com.example.trackertest.ui.theme.WhiteGrey
 
 @Composable
-fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier = Modifier, bg:Color = PurpleGrey80, content:@Composable ()->Unit){
+fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier = Modifier, bg:Color = WhiteGrey, content:@Composable ()->Unit){
     Column(
         modifier=modifier.background(bg),
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         Row(
-            modifier= Modifier
-                .fillMaxWidth()
-                .background(Purple40),
+            modifier= if(isOpened.value)
+                Modifier
+                    .background(Purple40)
+                    .padding(4.dp)
+                    .fillMaxWidth()
+            else
+                Modifier
+                    .padding(4.dp)
+                    .fillMaxWidth()
+                ,
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment =  Alignment.CenterVertically
         ){
-            Text(text=name, color= Color.White, fontSize=20.sp, fontWeight= FontWeight.SemiBold, modifier= Modifier.padding(4.dp))
+            Text(text=name, color=
+                if(isOpened.value) Color.White else Color.Black,
+                fontSize=18.sp, fontWeight= FontWeight.SemiBold, modifier= Modifier.padding(4.dp))
             Button(onClick = {
                 isOpened.value = !isOpened.value
             }){
@@ -58,7 +72,17 @@ fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier 
 @Composable
 fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier, dataKeyMapGen:(it: DataEntity)->Map<String, String>){
     val isOpened = remember{ mutableStateOf(false) }
-    NamedPanel("$name(${dataList.size})", isOpened, modifier.border(1.dp, Color.Black)){
+    NamedPanel("$name(${dataList.size})", isOpened, modifier.drawWithContent{
+        val lineSize = 1.dp.toPx()
+        val y = size.height - lineSize
+        drawContent()
+        drawLine(
+            color = Color.Gray,
+            start = Offset(0f, y),
+            end = Offset(size.width, y),
+            strokeWidth = lineSize,
+        )
+    }){
         Column{
             dataList.forEach{
                 DataEntityWidget(dataKeyMapGen(it))
@@ -79,7 +103,9 @@ fun SessionDataPanel(
     val isRecordOpened = remember{ mutableStateOf(false) }
     NamedPanel(name, isOpened, modifier.border(1.dp, Color.Black)){
         Column{
-            NamedPanel(" - Metadata(${metadataList.size})", isMetaOpened, Modifier.fillMaxWidth().wrapContentHeight()) {
+            NamedPanel(" - Metadata(${metadataList.size})", isMetaOpened, Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()) {
                 LazyColumn() {
                     metadataList.forEach {
                         item {
@@ -88,7 +114,9 @@ fun SessionDataPanel(
                     }
                 }
             }
-            NamedPanel(" - Records(${dataList.size})", isRecordOpened, Modifier.fillMaxWidth().wrapContentHeight()) {
+            NamedPanel(" - Records(${dataList.size})", isRecordOpened, Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()) {
                 LazyColumn() {
                     dataList.forEach {
                         item {
@@ -108,7 +136,9 @@ fun DataEntityWidget(keyVal:Map<String, String>, modifier: Modifier = Modifier){
     ){
         var i = 0;
         keyVal.forEach{
-            val rowModifier = if (i == 0) Modifier.fillMaxWidth().background(Purple80) else Modifier.fillMaxWidth()
+            val rowModifier = if (i == 0) Modifier
+                .fillMaxWidth()
+                .background(Purple80) else Modifier.fillMaxWidth()
             Row(
                 modifier = rowModifier,
                 verticalAlignment = Alignment.CenterVertically,

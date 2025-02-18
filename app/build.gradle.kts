@@ -54,6 +54,7 @@ dependencies {
     //Samsung Health Data SDK from Samsung
     implementation(fileTree("libs"))
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation.runtime.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

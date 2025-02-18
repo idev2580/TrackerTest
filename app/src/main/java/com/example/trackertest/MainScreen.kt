@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,11 +45,6 @@ import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeCollec
 import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeGoalCollector
 import com.example.trackertest.ui.NonsessionDataPanel
 import com.example.trackertest.ui.SessionDataPanel
-import com.samsung.android.sdk.health.data.HealthDataService
-import com.samsung.android.sdk.health.data.HealthDataStore
-import com.samsung.android.sdk.health.data.permission.AccessType
-import com.samsung.android.sdk.health.data.permission.Permission
-import com.samsung.android.sdk.health.data.request.DataTypes
 
 enum class MainScreen(){
     MAIN_SELECTION_SCREEN,
@@ -57,14 +54,6 @@ enum class MainScreen(){
     SKIN_TEMPERATURE,
 }
 
-suspend fun checkAndRequestPermissions(context: Context, activity:MainActivity, permSet:Set<Permission>){
-    val store: HealthDataStore = HealthDataService.getStore(context)
-    val isAllAllowed:Boolean = store.getGrantedPermissions(permSet).containsAll(permSet)
-
-    if(!isAllAllowed){
-        store.requestPermissions(permSet, activity)
-    }
-}
 
 @Composable
 fun MainScreen(
@@ -74,12 +63,14 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
     val permManager = SamsungHealthPermissionManager(activity)
+    var hasPermission by remember{mutableStateOf(false)}
 
     permManager.request(arrayOf()){
         res -> if(!res){
             Toast.makeText(context, "Permission not granted", Toast.LENGTH_SHORT).show()
         } else {
             Log.d("TAG", "All permissions granted")
+            hasPermission = true
         }
     }
 
@@ -98,7 +89,9 @@ fun MainScreen(
                 fontWeight = FontWeight.SemiBold
             )
         )
-        Button(onClick = {
+        Button(
+            enabled = hasPermission,
+            onClick = {
             if (isStarted) {
                 tracker.stop()
             } else {
@@ -161,7 +154,10 @@ fun MainScreen(
                 }
             }
             composable(route = MainScreen.NONSESSION_DATA.name){
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp))
+                ) {
                     item {
                         NonsessionDataPanel(
                             "ActiveCaloriesBurnedGoal", tracker.acbCollector.dataStorage,

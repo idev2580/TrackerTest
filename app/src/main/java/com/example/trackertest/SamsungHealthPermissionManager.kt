@@ -67,6 +67,7 @@ class SamsungHealthPermissionManager(val activity:MainActivity):PermissionManage
                         }
                     )
                 } else {
+                    onResult?.invoke(true)
                     //runnable.run()
                 }
             },
