@@ -70,7 +70,7 @@ fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier 
 }
 
 @Composable
-fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier, dataKeyMapGen:(it: DataEntity)->Map<String, String>){
+fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier, isLazy:Boolean=false, dataKeyMapGen:(it: DataEntity)->Map<String, String>){
     val isOpened = remember{ mutableStateOf(false) }
     NamedPanel("$name(${dataList.size})", isOpened, modifier.drawWithContent{
         val lineSize = 1.dp.toPx()
@@ -83,9 +83,19 @@ fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifi
             strokeWidth = lineSize,
         )
     }){
-        Column{
-            dataList.forEach{
-                DataEntityWidget(dataKeyMapGen(it))
+        if(isLazy){
+            LazyColumn {
+                dataList.forEach {
+                    item {
+                        DataEntityWidget(dataKeyMapGen(it))
+                    }
+                }
+            }
+        } else {
+            Column {
+                dataList.forEach {
+                    DataEntityWidget(dataKeyMapGen(it))
+                }
             }
         }
     }

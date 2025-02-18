@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveCaloriesBurnedGoalCollector
 import com.example.trackertest.tracker.collector.samsunghealth.ActiveTimeGoalCollector
+import com.example.trackertest.tracker.collector.samsunghealth.ActivitySummaryCollector
 import com.example.trackertest.tracker.collector.samsunghealth.BloodOxygenCollector
 import com.example.trackertest.tracker.collector.samsunghealth.BloodPressureCollector
 import com.example.trackertest.tracker.collector.samsunghealth.BodyCompositionCollector
@@ -49,6 +50,7 @@ import com.example.trackertest.ui.SessionDataPanel
 enum class MainScreen(){
     MAIN_SELECTION_SCREEN,
     NONSESSION_DATA,
+    STEP_DATA,
     BLOOD_OXYGEN,
     HEART_RATE,
     SKIN_TEMPERATURE,
@@ -67,7 +69,7 @@ fun MainScreen(
 
     permManager.request(arrayOf()){
         res -> if(!res){
-            Toast.makeText(context, "Permission not granted", Toast.LENGTH_SHORT).show()
+            //Toast.makeText(context, "Permission not granted", Toast.LENGTH_SHORT).show()
         } else {
             Log.d("TAG", "All permissions granted")
             hasPermission = true
@@ -124,6 +126,16 @@ fun MainScreen(
                     item {
                         Button(
                             onClick = {
+                                navController.navigate(MainScreen.STEP_DATA.name)
+                            },
+                            modifier=Modifier.fillMaxWidth()
+                        ) {
+                            Text(text="Step")
+                        }
+                    }
+                    item {
+                        Button(
+                            onClick = {
                                 navController.navigate(MainScreen.BLOOD_OXYGEN.name)
                             },
                             modifier=Modifier.fillMaxWidth()
@@ -168,6 +180,24 @@ fun MainScreen(
                             val valueMap = mapOf(
                                 Pair("goalSetTime", item.goalSetTime.toString()),
                                 Pair("activeCaloriesBurned", item.activeCaloriesBurned.toString())
+                            )
+                            valueMap
+                        }
+                    }
+                    item{
+                        NonsessionDataPanel(
+                            "ActivitySummary", tracker.asCollector.dataStorage,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        ) { it ->
+                            val item = it as ActivitySummaryCollector.Entity
+                            val valueMap = mapOf(
+                                Pair("startTime",item.startTime.toString()),
+                                Pair("endTime",item.endTime.toString()),
+                                Pair("activeTime",item.activeTime.toString()),
+                                Pair("activeCaloriesBurned",item.activeCaloriesBurned.toString()),
+                                Pair("caloriesBurned",item.caloriesBurned.toString()),
+                                Pair("distance",item.distance.toString()),
                             )
                             valueMap
                         }
@@ -273,21 +303,6 @@ fun MainScreen(
                     }
                     item {
                         NonsessionDataPanel(
-                            "Step", tracker.stepCollector.dataStorage.values.toList(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        ) { it ->
-                            val item = it as StepCollector.Entity
-                            val valueMap = mapOf(
-                                Pair("startTime", item.startTime.toString()),
-                                Pair("endTime", item.endTime.toString()),
-                                Pair("steps", item.steps.toString())
-                            )
-                            valueMap
-                        }
-                    }
-                    item {
-                        NonsessionDataPanel(
                             "StepGoal", tracker.stepGoalCollector.dataStorage,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -329,6 +344,22 @@ fun MainScreen(
                             valueMap
                         }
                     }
+                }
+            }
+            composable(route = MainScreen.STEP_DATA.name){
+                NonsessionDataPanel(
+                    "Step", tracker.stepCollector.dataStorage.values.toList(),
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    isLazy = true
+                ) { it ->
+                    val item = it as StepCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("startTime", item.startTime.toString()),
+                        Pair("endTime", item.endTime.toString()),
+                        Pair("steps", item.steps.toString())
+                    )
+                    valueMap
                 }
             }
             composable(route = MainScreen.BLOOD_OXYGEN.name){

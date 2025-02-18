@@ -14,6 +14,8 @@ import com.samsung.android.sdk.health.data.HealthDataStore
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeFilter
+import com.samsung.android.sdk.health.data.request.LocalTimeGroup
+import com.samsung.android.sdk.health.data.request.LocalTimeGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -154,6 +156,171 @@ class ActivitySummaryCollector(
             distanceData?:0.0f
         )
     }
+    suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
+        val timestamp = System.currentTimeMillis()
+        val timeFilter = LocalTimeFilter.since(
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(since), ZoneId.systemDefault())
+        )
+        val timeGroup = LocalTimeGroup.of(LocalTimeGroupUnit.DAILY,1)
+        val activeCaloriesBurnedReq = DataType.ActivitySummaryType
+            .TOTAL_ACTIVE_CALORIES_BURNED
+            .requestBuilder
+            .setLocalTimeFilterWithGroup(timeFilter, timeGroup)
+            .setOrdering(Ordering.DESC)
+            .build()
+        val activeTimeReq = DataType.ActivitySummaryType
+            .TOTAL_ACTIVE_TIME
+            .requestBuilder
+            .setLocalTimeFilterWithGroup(timeFilter, timeGroup)
+            .setOrdering(Ordering.DESC)
+            .build()
+        val caloriesBurnedReq = DataType.ActivitySummaryType
+            .TOTAL_CALORIES_BURNED
+            .requestBuilder
+            .setLocalTimeFilterWithGroup(timeFilter, timeGroup)
+            .setOrdering(Ordering.DESC)
+            .build()
+        val distanceReq = DataType.ActivitySummaryType
+            .TOTAL_DISTANCE
+            .requestBuilder
+            .setLocalTimeFilterWithGroup(timeFilter, timeGroup)
+            .setOrdering(Ordering.DESC)
+            .build()
+
+        val resMap:MutableMap<Long, Entity> = mutableMapOf()
+
+        val activeTimeList = store.aggregateData(activeTimeReq).dataList
+        val activeCaloriesBurnedList = store.aggregateData(activeCaloriesBurnedReq).dataList
+        val caloriesBurnedList = store.aggregateData(caloriesBurnedReq).dataList
+        val distanceList = store.aggregateData(distanceReq).dataList
+
+        var maxEndTime:Long = -1L
+        activeTimeList.forEach{ it ->
+            val startTime = it.startTime.toEpochMilli()
+            val endTime = it.endTime.toEpochMilli()
+            if(endTime > maxEndTime)
+                maxEndTime = endTime
+            val activeTime = it.value?.toMillis()?:0L
+            if(resMap[startTime] == null){
+                resMap[startTime] = Entity(
+                    timestamp,
+                    startTime,
+                    endTime,
+                    0.0f,
+                    activeTime,
+                    0.0f,
+                    0.0f
+                )
+            } else {
+                val original = resMap[startTime]!!
+                resMap[startTime] = Entity(
+                    original.received,
+                    original.startTime,
+                    original.endTime,
+                    original.activeCaloriesBurned,
+                    activeTime,
+                    original.caloriesBurned,
+                    original.distance
+                )
+            }
+        }
+        activeCaloriesBurnedList.forEach{ it ->
+            val startTime = it.startTime.toEpochMilli()
+            val endTime = it.endTime.toEpochMilli()
+            if(endTime > maxEndTime)
+                maxEndTime = endTime
+            val activeCaloriesBurned:Float = it.value?:0.0f
+
+            if(resMap[startTime] == null){
+                resMap[startTime] = Entity(
+                    timestamp,
+                    startTime,
+                    endTime,
+                    activeCaloriesBurned,
+                    0L,
+                    0.0f,
+                    0.0f
+                )
+            } else {
+                val original = resMap[startTime]!!
+                resMap[startTime] = Entity(
+                    original.received,
+                    original.startTime,
+                    original.endTime,
+                    activeCaloriesBurned,
+                    original.activeTime,
+                    original.caloriesBurned,
+                    original.distance
+                )
+            }
+        }
+        caloriesBurnedList.forEach{it ->
+            val startTime = it.startTime.toEpochMilli()
+            val endTime = it.endTime.toEpochMilli()
+            if(endTime > maxEndTime)
+                maxEndTime = endTime
+            val caloriesBurned = it.value?:0.0f;
+
+            if(resMap[startTime] == null){
+                resMap[startTime] = Entity(
+                    timestamp,
+                    startTime,
+                    endTime,
+                    0.0f,
+                    0L,
+                    caloriesBurned,
+                    0.0f
+                )
+            } else {
+                val original = resMap[startTime]!!
+                resMap[startTime] = Entity(
+                    original.received,
+                    original.startTime,
+                    original.endTime,
+                    original.activeCaloriesBurned,
+                    original.activeTime,
+                    caloriesBurned,
+                    original.distance
+                )
+            }
+        }
+        distanceList.forEach{it->
+            val startTime = it.startTime.toEpochMilli()
+            val endTime = it.endTime.toEpochMilli()
+            if(endTime > maxEndTime)
+                maxEndTime = endTime
+            val distance:Float = it.value ?: 0.0f
+
+            if(resMap[startTime] == null){
+                resMap[startTime] = Entity(
+                    timestamp,
+                    startTime,
+                    endTime,
+                    0.0f,
+                    0L,
+                    0.0f,
+                    distance
+                )
+            } else {
+                val original = resMap[startTime]!!
+                resMap[startTime] = Entity(
+                    original.received,
+                    original.startTime,
+                    original.endTime,
+                    original.activeCaloriesBurned,
+                    original.activeTime,
+                    original.caloriesBurned,
+                    distance
+                )
+            }
+        }
+        resMap.forEach{ it->
+            listener?.invoke(it.value)
+        }
+        return maxEndTime
+    }
+
+    var lastSynced:Long = System.currentTimeMillis() - 64L*24L*3600000L
     override fun start() {
         super.start()
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -163,17 +330,8 @@ class ActivitySummaryCollector(
                 val timestamp = System.currentTimeMillis()
                 //Log.d("TAG", "ActivitySummaryCollector: $timestamp")
 
-                var isSleep = true
-                val readEntity = readData(store)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
-                    isSleep = readEntity.endTime >= timestamp
-                }
-
-                if(isSleep)
-                    sleep(configFlow.value.interval)
+                lastSynced = readAllDataByGroup(store, lastSynced, listener)
+                sleep(configFlow.value.interval)
             }
         }
 

@@ -11,9 +11,12 @@ import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
+import com.samsung.android.sdk.health.data.error.PlatformInternalException
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeFilter
+import com.samsung.android.sdk.health.data.request.LocalTimeGroup
+import com.samsung.android.sdk.health.data.request.LocalTimeGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +42,7 @@ class StepCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(5)
+            TimeUnit.SECONDS.toMillis(30)
         )
     }
     override val _defaultConfig = StepCollector.defaultConfig
@@ -130,6 +133,37 @@ class StepCollector(
         }
         return null
     }
+    suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
+        val timestamp = System.currentTimeMillis()
+        val fromTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(since), ZoneId.systemDefault())
+        val req = DataType.StepsType
+            .TOTAL
+            .requestBuilder
+            .setLocalTimeFilterWithGroup(
+                LocalTimeFilter.since(
+                    fromTime
+                ),
+                LocalTimeGroup.of(LocalTimeGroupUnit.MINUTELY, 10)
+            )
+            .setOrdering(Ordering.DESC)
+            .build()
+        val resList = store.aggregateData(req).dataList
+        Log.d("StepCollector", "readAllDataByGroup() : ${resList.size} step data loaded, timeFilter=since(${fromTime})")
+        var maxTime:Long = -1L
+        resList.forEach{ it->
+            listener?.invoke(
+                Entity(
+                    timestamp,
+                    it.value?:0L,
+                    it.startTime.toEpochMilli(),
+                    it.endTime.toEpochMilli()
+                )
+            )
+            if(it.endTime.toEpochMilli() > maxTime)
+                maxTime = it.endTime.toEpochMilli()
+        }
+        return maxTime
+    }
     suspend fun readAllData(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
         val timestamp = System.currentTimeMillis()
         var loop = true
@@ -172,7 +206,7 @@ class StepCollector(
         return timestamp
     }
 
-    var lastSynced:Long = -1
+    var lastSynced:Long = System.currentTimeMillis() - 64L*24L*3600L*1000L
     override fun start() {
         super.start()
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -183,7 +217,12 @@ class StepCollector(
                 val timestamp = System.currentTimeMillis()
 
                 //TODO : Insert only if this entity's timeslot is new. Else, do update instead of insertion.
-                lastSynced = readAllData(store, lastSynced, listener)
+                //lastSynced = readAllData(store, lastSynced, listener)
+                try {
+                    lastSynced = readAllDataByGroup(store, lastSynced, listener)
+                } catch (e: PlatformInternalException) {
+                    //Do nothing
+                }
                 Log.d("StepCollector", "Synced at : $timestamp")
                 /*val readEntity = readData(store)
                 if(readEntity != null){
