@@ -42,7 +42,7 @@ class StepCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(30)
+            TimeUnit.SECONDS.toMillis(10)
         )
     }
     override val _defaultConfig = StepCollector.defaultConfig
@@ -73,11 +73,11 @@ class StepCollector(
 
     private var job: Job? = null
 
-    private val syncPastLimitDays:Long = 0
+    private val syncPastLimitDays:Long = 64
     private val syncUnitTimeMinutes:Long = 10
     private val syncUnitTimeMillis:Long = syncUnitTimeMinutes * 60000
 
-    fun getTimeFilter(): LocalTimeFilter {
+    /*fun getTimeFilter(): LocalTimeFilter {
         val now = LocalDateTime.now()
         val sTime = now
             .minusMinutes((now.minute % syncUnitTimeMinutes).toLong())
@@ -101,9 +101,8 @@ class StepCollector(
             //.minusNanos(inputStime.nano.toLong())
         val eTime = sTime.plusMinutes(syncUnitTimeMinutes)
         return LocalTimeFilter.of(sTime, eTime)
-    }
-
-    suspend fun readData(store: HealthDataStore):Entity?{
+    }*/
+    /*suspend fun readData(store: HealthDataStore):Entity?{
         //지금 시간이 포함되어 있는 Timeslot의 Steps 정보를 읽어온다.
         val timeFilter = getTimeFilter()
         val req = DataType.StepsType
@@ -132,10 +131,13 @@ class StepCollector(
             }
         }
         return null
-    }
+    }*/
     suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
         val timestamp = System.currentTimeMillis()
+
+        //최근 걸음 정보를 불러와야 하기 때문에 분 단위로 내림한다.
         val fromTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(since), ZoneId.systemDefault())
+            .truncatedTo(ChronoUnit.MINUTES)
         val req = DataType.StepsType
             .TOTAL
             .requestBuilder
@@ -164,7 +166,7 @@ class StepCollector(
         }
         return maxTime
     }
-    suspend fun readAllData(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
+    /*suspend fun readAllData(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
         val timestamp = System.currentTimeMillis()
         var loop = true
         var syncTarget = since
@@ -204,9 +206,9 @@ class StepCollector(
             }
         }
         return timestamp
-    }
+    }*/
 
-    var lastSynced:Long = System.currentTimeMillis() - 64L*24L*3600L*1000L
+    private var lastSynced:Long = System.currentTimeMillis() - syncPastLimitDays*24L*3600L*1000L
     override fun start() {
         super.start()
         job = CoroutineScope(Dispatchers.IO).launch {
@@ -220,10 +222,13 @@ class StepCollector(
                 //lastSynced = readAllData(store, lastSynced, listener)
                 try {
                     lastSynced = readAllDataByGroup(store, lastSynced, listener)
+                    Log.d("StepCollector", "Synced at : $timestamp")
                 } catch (e: PlatformInternalException) {
                     //Do nothing
+                    Log.e("StepCollector", "Sync Error at : $timestamp")
+                    Log.getStackTraceString(e)
                 }
-                Log.d("StepCollector", "Synced at : $timestamp")
+
                 /*val readEntity = readData(store)
                 if(readEntity != null){
                     listener?.invoke(

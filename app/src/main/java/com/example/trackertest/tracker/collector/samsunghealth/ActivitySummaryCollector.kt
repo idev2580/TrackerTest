@@ -27,6 +27,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -71,11 +72,11 @@ class ActivitySummaryCollector(
 
     private var job: Job? = null
 
-    private val syncPastLimitDays:Long = 0
+    private val syncPastLimitDays:Long = 31
     private val syncPastLimitMillis:Long = syncPastLimitDays * 24L * 3600L * 1000L
     private var latestDataTimestamp:Long = -1L
 
-    fun getTimeFilter():LocalTimeFilter{
+    /*fun getTimeFilter():LocalTimeFilter{
         //Log.d("TAG", "ActivitySummary.getTimeFilter() : latestDataTimestamp=$latestDataTimestamp")
         val currentTimestamp = System.currentTimeMillis()
 
@@ -155,11 +156,15 @@ class ActivitySummaryCollector(
             caloriesBurnedData?:0.0f,
             distanceData?:0.0f
         )
-    }
+    }*/
     suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
         val timestamp = System.currentTimeMillis()
+
         val timeFilter = LocalTimeFilter.since(
-            LocalDateTime.ofInstant(Instant.ofEpochMilli(since), ZoneId.systemDefault())
+            //최근 1일동안의 정보는 계속 업데이트 되어야 하므로 일 단위로 내림
+            LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(since), ZoneId.systemDefault())
+                    .truncatedTo(ChronoUnit.DAYS)
         )
         val timeGroup = LocalTimeGroup.of(LocalTimeGroupUnit.DAILY,1)
         val activeCaloriesBurnedReq = DataType.ActivitySummaryType
@@ -320,7 +325,7 @@ class ActivitySummaryCollector(
         return maxEndTime
     }
 
-    var lastSynced:Long = System.currentTimeMillis() - 64L*24L*3600000L
+    private var lastSynced:Long = System.currentTimeMillis() - syncPastLimitDays*24L*3600000L
     override fun start() {
         super.start()
         job = CoroutineScope(Dispatchers.IO).launch {

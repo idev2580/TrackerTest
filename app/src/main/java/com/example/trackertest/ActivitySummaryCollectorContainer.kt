@@ -1,18 +1,15 @@
 package com.example.trackertest
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.lifecycle.ViewModel
-import com.example.trackertest.tracker.collector.core.AbstractCollector
 import com.example.trackertest.tracker.collector.core.DataEntity
-import com.example.trackertest.tracker.collector.samsunghealth.StepCollector
+import com.example.trackertest.tracker.collector.samsunghealth.ActivitySummaryCollector
 
-class StepDataCollectorContainer(val collector: StepCollector){
+class ActivitySummaryCollectorContainer(val collector: ActivitySummaryCollector) {
     val dataStorage:MutableMap<Long, DataEntity> = mutableStateMapOf()
     init{
         collector.listener = { it ->
-            val item = it as StepCollector.Entity
+            val item = it as ActivitySummaryCollector.Entity
             dataStorage[item.startTime] = item
         }
     }
@@ -23,7 +20,7 @@ class StepDataCollectorContainer(val collector: StepCollector){
         try {
             return collector.stop()
         } catch (e:Exception){
-            Log.w("TAG", "NonsessionDataCollectorContainer : Collector for ${collector.getEntityClass()}'s stop() made error")
+            Log.w("ActivitySummaryCollectorContainer", "Collector for ${collector.getEntityClass()}'s stop() made error")
             return Unit
         }
     }

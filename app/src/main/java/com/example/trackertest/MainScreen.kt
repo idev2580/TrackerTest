@@ -50,6 +50,7 @@ import com.example.trackertest.ui.SessionDataPanel
 enum class MainScreen(){
     MAIN_SELECTION_SCREEN,
     NONSESSION_DATA,
+    ACTIVITY_SUMMARY,
     STEP_DATA,
     BLOOD_OXYGEN,
     HEART_RATE,
@@ -126,6 +127,16 @@ fun MainScreen(
                     item {
                         Button(
                             onClick = {
+                                navController.navigate(MainScreen.ACTIVITY_SUMMARY.name)
+                            },
+                            modifier=Modifier.fillMaxWidth()
+                        ) {
+                            Text(text="Activity Summary")
+                        }
+                    }
+                    item {
+                        Button(
+                            onClick = {
                                 navController.navigate(MainScreen.STEP_DATA.name)
                             },
                             modifier=Modifier.fillMaxWidth()
@@ -180,24 +191,6 @@ fun MainScreen(
                             val valueMap = mapOf(
                                 Pair("goalSetTime", item.goalSetTime.toString()),
                                 Pair("activeCaloriesBurned", item.activeCaloriesBurned.toString())
-                            )
-                            valueMap
-                        }
-                    }
-                    item{
-                        NonsessionDataPanel(
-                            "ActivitySummary", tracker.asCollector.dataStorage,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        ) { it ->
-                            val item = it as ActivitySummaryCollector.Entity
-                            val valueMap = mapOf(
-                                Pair("startTime",item.startTime.toString()),
-                                Pair("endTime",item.endTime.toString()),
-                                Pair("activeTime",item.activeTime.toString()),
-                                Pair("activeCaloriesBurned",item.activeCaloriesBurned.toString()),
-                                Pair("caloriesBurned",item.caloriesBurned.toString()),
-                                Pair("distance",item.distance.toString()),
                             )
                             valueMap
                         }
@@ -344,6 +337,25 @@ fun MainScreen(
                             valueMap
                         }
                     }
+                }
+            }
+            composable(route = MainScreen.ACTIVITY_SUMMARY.name){
+                NonsessionDataPanel(
+                    "ActivitySummary", tracker.asCollector.dataStorage.values.toList(),
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    isLazy = true
+                ) { it ->
+                    val item = it as ActivitySummaryCollector.Entity
+                    val valueMap = mapOf(
+                        Pair("startTime",item.startTime.toString()),
+                        Pair("endTime",item.endTime.toString()),
+                        Pair("activeTime",item.activeTime.toString()),
+                        Pair("activeCaloriesBurned",item.activeCaloriesBurned.toString()),
+                        Pair("caloriesBurned",item.caloriesBurned.toString()),
+                        Pair("distance",item.distance.toString()),
+                    )
+                    valueMap
                 }
             }
             composable(route = MainScreen.STEP_DATA.name){

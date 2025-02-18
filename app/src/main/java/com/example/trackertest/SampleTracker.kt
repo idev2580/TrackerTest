@@ -42,7 +42,7 @@ class SampleTracker(
             DummySingletonStorage<CollectorState>(AbstractCollector.defaultState)
         )
     )
-    val asCollector = NonsessionDataCollectorContainer<ActivitySummaryCollector>(
+    val asCollector = ActivitySummaryCollectorContainer(
         ActivitySummaryCollector(
             context,
             DummyPermissionManager(),
