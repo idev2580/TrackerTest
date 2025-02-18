@@ -12,7 +12,6 @@ import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
 import com.samsung.android.sdk.health.data.request.DataType
-import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeGroup
 import com.samsung.android.sdk.health.data.request.LocalTimeGroupUnit
@@ -26,7 +25,6 @@ import java.lang.Thread.sleep
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
@@ -73,91 +71,10 @@ class ActivitySummaryCollector(
     private var job: Job? = null
 
     private val syncPastLimitDays:Long = 31
-    private val syncPastLimitMillis:Long = syncPastLimitDays * 24L * 3600L * 1000L
-    private var latestDataTimestamp:Long = -1L
+    // private val syncPastLimitMillis:Long = syncPastLimitDays * 24L * 3600L * 1000L
+    // private var latestDataTimestamp:Long = -1L
 
-    /*fun getTimeFilter():LocalTimeFilter{
-        //Log.d("TAG", "ActivitySummary.getTimeFilter() : latestDataTimestamp=$latestDataTimestamp")
-        val currentTimestamp = System.currentTimeMillis()
-
-        //val targetTimestamp = if(latestDataTimestamp == -1L) (currentTimestamp - 30L * 24L * 3600L * 1000L) else latestDataTimestamp
-        //Activity summary for 1 month is too large to compute, just gather data for 7 days
-        val targetTimestamp = if(latestDataTimestamp == -1L) (currentTimestamp - syncPastLimitMillis) else latestDataTimestamp
-
-        val nowDateTime = LocalDateTime.ofInstant(
-            Instant.ofEpochMilli(targetTimestamp),
-            ZoneId.systemDefault()
-        )
-        val targetDayStart = LocalDateTime.of(
-            nowDateTime.year,
-            nowDateTime.month,
-            nowDateTime.dayOfMonth,
-            0,0
-        )
-        val targetDayEnd = targetDayStart.plusDays(1)
-        val targetDayEndTimestamp = targetDayEnd.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-        if(targetDayEndTimestamp < currentTimestamp){
-            //For some reason, sync not done for some while.
-            latestDataTimestamp = targetDayEndTimestamp
-        } else {
-            //Updating for current day.
-            latestDataTimestamp = currentTimestamp
-        }
-        return LocalTimeFilter.of(
-            targetDayStart,
-            targetDayEnd
-        )
-    }
-    suspend fun readData(store: HealthDataStore): Entity?{
-        val timeFilter = getTimeFilter()
-        val activeCaloriesBurnedReq = DataType.ActivitySummaryType
-            .TOTAL_ACTIVE_CALORIES_BURNED
-            .requestBuilder
-            .setLocalTimeFilter(timeFilter)
-            .setOrdering(Ordering.DESC)
-            .build()
-        val activeTimeReq = DataType.ActivitySummaryType
-            .TOTAL_ACTIVE_TIME
-            .requestBuilder
-            .setLocalTimeFilter(timeFilter)
-            .setOrdering(Ordering.DESC)
-            .build()
-        val caloriesBurnedReq = DataType.ActivitySummaryType
-            .TOTAL_CALORIES_BURNED
-            .requestBuilder
-            .setLocalTimeFilter(timeFilter)
-            .setOrdering(Ordering.DESC)
-            .build()
-        val distanceReq = DataType.ActivitySummaryType
-            .TOTAL_DISTANCE
-            .requestBuilder
-            .setLocalTimeFilter(timeFilter)
-            .setOrdering(Ordering.DESC)
-            .build()
-        val startTime:Long = timeFilter.startTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val endTime:Long = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-        val activeCaloriesBurnedRawDataList = store.aggregateData(activeCaloriesBurnedReq).dataList
-        if(activeCaloriesBurnedRawDataList.isEmpty())
-            return null
-        val activeCaloriesBurnedData:Float? = activeCaloriesBurnedRawDataList.first().value
-        val activeTimeData:Long? = store.aggregateData(activeTimeReq).dataList.first().value?.toMillis()
-        val caloriesBurnedData:Float? = store.aggregateData(caloriesBurnedReq).dataList.first().value
-        val distanceData:Float? = store.aggregateData(distanceReq).dataList.first().value
-
-        Log.d("TAG", "ActivitySummaryCollector : startTime=$startTime, endTime=$endTime")
-        return Entity(
-            System.currentTimeMillis(),
-            startTime,
-            endTime,
-            activeCaloriesBurnedData?: 0.0f,
-            activeTimeData?:0L,
-            caloriesBurnedData?:0.0f,
-            distanceData?:0.0f
-        )
-    }*/
-    suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
+    private suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
         val timestamp = System.currentTimeMillis()
 
         val timeFilter = LocalTimeFilter.since(
@@ -200,7 +117,7 @@ class ActivitySummaryCollector(
         val distanceList = store.aggregateData(distanceReq).dataList
 
         var maxEndTime:Long = since
-        activeTimeList.forEach{ it ->
+        activeTimeList.forEach{
             val startTime = it.startTime.toEpochMilli()
             val endTime = it.endTime.toEpochMilli()
             if(endTime > maxEndTime)
@@ -229,7 +146,7 @@ class ActivitySummaryCollector(
                 )
             }
         }
-        activeCaloriesBurnedList.forEach{ it ->
+        activeCaloriesBurnedList.forEach{
             val startTime = it.startTime.toEpochMilli()
             val endTime = it.endTime.toEpochMilli()
             if(endTime > maxEndTime)
@@ -259,12 +176,12 @@ class ActivitySummaryCollector(
                 )
             }
         }
-        caloriesBurnedList.forEach{it ->
+        caloriesBurnedList.forEach{
             val startTime = it.startTime.toEpochMilli()
             val endTime = it.endTime.toEpochMilli()
             if(endTime > maxEndTime)
                 maxEndTime = endTime
-            val caloriesBurned = it.value?:0.0f;
+            val caloriesBurned = it.value?:0.0f
 
             if(resMap[startTime] == null){
                 resMap[startTime] = Entity(
@@ -289,7 +206,7 @@ class ActivitySummaryCollector(
                 )
             }
         }
-        distanceList.forEach{it->
+        distanceList.forEach{
             val startTime = it.startTime.toEpochMilli()
             val endTime = it.endTime.toEpochMilli()
             if(endTime > maxEndTime)
@@ -320,7 +237,7 @@ class ActivitySummaryCollector(
             }
         }
         Log.d("ActivitySummaryCollector", "${resMap.size} summary data loaded, timeFilter=since(${timeFilter.startTime})")
-        resMap.forEach{ it->
+        resMap.forEach{
             listener?.invoke(it.value)
         }
         return maxEndTime
@@ -334,9 +251,9 @@ class ActivitySummaryCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                //Log.d("TAG", "ActivitySummaryCollector: $timestamp")
 
                 lastSynced = readAllDataByGroup(store, lastSynced, listener)
+                Log.d("ActivitySummaryCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

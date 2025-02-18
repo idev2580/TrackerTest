@@ -35,7 +35,7 @@ class WaterIntakeGoalCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(600)
+            TimeUnit.SECONDS.toMillis(60)
         )
         val defaultGoal:Float = 2000.0f
     }
@@ -68,10 +68,11 @@ class WaterIntakeGoalCollector(
     private var job: Job? = null
 
     //At now, skip reading latestGoal data and just use member variable to track them
-    var latestGoalSetTime:Long = -1
-    var latestGoal:Float = -2.0f    //-1 is default goal. To track even default goal at first, it should not be -1.
+    private var latestGoalSetTime:Long = -1
+    private var latestGoal:Float = -2.0f    //-1 is default goal. To track even default goal at first, it should not be -1.
 
-    suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore):Entity?{
+        val rTimestamp = System.currentTimeMillis()
         val req = DataType.WaterIntakeGoalType
             .LAST.requestBuilder
             .setOrdering(Ordering.DESC)
@@ -95,11 +96,11 @@ class WaterIntakeGoalCollector(
                 latestGoal = recordGoal
 
                 Log.d(
-                    "TAG",
-                    "WaterIntakeGoalCollector: latestGoalSetTime=$latestGoalSetTime, goal=$recordGoal, isDefaultGoal=$isDefaultGoal"
+                    "WaterIntakeGoalCollector",
+                    "latestGoalSetTime=$latestGoalSetTime, goal=$recordGoal, isDefaultGoal=$isDefaultGoal"
                 )
                 return Entity(
-                    latestGoalSetTime,
+                    rTimestamp,
                     recordGoal,
                     latestGoalSetTime
                 )
@@ -115,14 +116,13 @@ class WaterIntakeGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "WaterIntakeGoalCollector: timestamp=$timestamp")
-
                 val readEntity = readGoal(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
                 }
+                Log.d("WaterIntakeGoalCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

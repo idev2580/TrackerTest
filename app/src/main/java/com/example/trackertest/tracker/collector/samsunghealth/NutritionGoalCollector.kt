@@ -67,10 +67,11 @@ class NutritionGoalCollector(
 
     private var job: Job? = null
 
-    var latestGoalSetTime:Long = -1
-    var latestCaloriesGoal:Float = -2.0f
+    private var latestGoalSetTime:Long = -1
+    private var latestCaloriesGoal:Float = -2.0f
 
-    suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore):Entity?{
+        val rTimestamp = System.currentTimeMillis()
         val req = DataType.NutritionGoalType
             .LAST_CALORIES.requestBuilder
             .setOrdering(Ordering.DESC)
@@ -91,9 +92,9 @@ class NutritionGoalCollector(
                 if(recordGoal != latestCaloriesGoal) {
                     latestGoalSetTime = System.currentTimeMillis()
                     latestCaloriesGoal = recordGoal
-                    Log.d("TAG", "NutritionGoalCollector : latestGoalSetTime=$latestGoalSetTime, latestCaloriesGoal=$latestCaloriesGoal")
+                    Log.d("NutritionGoalCollector", "latestGoalSetTime=$latestGoalSetTime, latestCaloriesGoal=$latestCaloriesGoal")
                     return Entity(
-                        latestGoalSetTime,
+                        rTimestamp,
                         recordGoal,
                         latestGoalSetTime
                     )
@@ -110,15 +111,13 @@ class NutritionGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "NutritionGoalCollector: $timestamp")
-
                 val readEntity = readGoal(store)
                 if(readEntity != null){
                     listener?.invoke(
                         readEntity
                     )
                 }
-
+                Log.d("NutritionGoalCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

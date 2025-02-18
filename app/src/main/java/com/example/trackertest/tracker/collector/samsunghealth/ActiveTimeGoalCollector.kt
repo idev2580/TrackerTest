@@ -67,9 +67,9 @@ class ActiveTimeGoalCollector(
 
     private var job: Job? = null
 
-    var latestGoalSetTime:Long = -1
-    var latestGoal:Long = -2
-    suspend fun readGoal(store: HealthDataStore):Entity?{
+    private var latestGoalSetTime:Long = -1
+    private var latestGoal:Long = -2
+    private suspend fun readGoal(store: HealthDataStore):Entity?{
         val req = DataType.ActiveTimeGoalType
             .LAST.requestBuilder
             .setOrdering(Ordering.DESC)
@@ -90,7 +90,7 @@ class ActiveTimeGoalCollector(
                 if(recordGoal != latestGoal){
                     latestGoalSetTime = System.currentTimeMillis()
                     latestGoal = recordGoal
-                    Log.d("TAG", "ActiveTimeGoalCollector : latestGoalSetTime=$latestGoalSetTime, latestGoal=$latestGoal")
+                    Log.d("ActiveTimeGoalCollector", "latestGoalSetTime=$latestGoalSetTime, latestGoal=$latestGoal")
                     return Entity(
                         latestGoalSetTime,
                         recordGoal,
@@ -109,7 +109,7 @@ class ActiveTimeGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "ActiveTimeGoalCollector: $timestamp")
+                Log.d("ActiveTimeGoalCollector", "Synced at $timestamp")
 
                 val readEntity = readGoal(store)
                 if(readEntity != null){

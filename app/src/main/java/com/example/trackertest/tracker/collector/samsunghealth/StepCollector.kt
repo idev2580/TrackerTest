@@ -42,7 +42,7 @@ class StepCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(10)
+            TimeUnit.SECONDS.toMillis(60)
         )
     }
     override val _defaultConfig = StepCollector.defaultConfig
@@ -77,62 +77,7 @@ class StepCollector(
     private val syncUnitTimeMinutes:Long = 10
     private val syncUnitTimeMillis:Long = syncUnitTimeMinutes * 60000
 
-    /*fun getTimeFilter(): LocalTimeFilter {
-        val now = LocalDateTime.now()
-        val sTime = now
-            .minusMinutes((now.minute % syncUnitTimeMinutes).toLong())
-            .minusSeconds(now.second.toLong())
-            .minusNanos(now.nano.toLong())
-        val eTime = sTime.plusMinutes(syncUnitTimeMinutes)
-        return LocalTimeFilter.of(sTime, eTime)
-    }
-    fun getTimeFilter(inputTime:Long):LocalTimeFilter {
-        val inputStime:LocalDateTime =
-            if(inputTime != -1L)
-                Instant.ofEpochMilli(inputTime).atZone(ZoneId.systemDefault()).toLocalDateTime()
-            else
-                LocalDateTime.now().truncatedTo(ChronoUnit.DAYS)
-        val sTime = inputStime
-            .minusMinutes((inputStime.minute % syncUnitTimeMinutes).toLong())
-            .truncatedTo(ChronoUnit.MINUTES)
-            .minusDays(syncPastLimitDays)
-
-            //.minusSeconds(inputStime.second.toLong())
-            //.minusNanos(inputStime.nano.toLong())
-        val eTime = sTime.plusMinutes(syncUnitTimeMinutes)
-        return LocalTimeFilter.of(sTime, eTime)
-    }*/
-    /*suspend fun readData(store: HealthDataStore):Entity?{
-        //지금 시간이 포함되어 있는 Timeslot의 Steps 정보를 읽어온다.
-        val timeFilter = getTimeFilter()
-        val req = DataType.StepsType
-            .TOTAL
-            .requestBuilder
-            .setLocalTimeFilter(timeFilter)
-            .setOrdering(Ordering.DESC)
-            .build()
-
-        val resList = store.aggregateData(req).dataList
-
-        val startTime = timeFilter.startTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val endTime = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-        //Log.d("TAG", "StepCollector : $startTime~$endTime")
-        if(resList.isNotEmpty()){
-            val step:Long? = resList.first().value?.toLong()
-            if(step != null){
-                Log.d("TAG", "StepCollector : $step steps in $startTime~$endTime")
-                return Entity(
-                    System.currentTimeMillis(),
-                    step,
-                    startTime,
-                    endTime
-                )
-            }
-        }
-        return null
-    }*/
-    suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
+    private suspend fun readAllDataByGroup(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
         val timestamp = System.currentTimeMillis()
 
         //최근 걸음 정보를 불러와야 하기 때문에 분 단위로 내림한다.
@@ -167,47 +112,6 @@ class StepCollector(
         }
         return maxTime
     }
-    /*suspend fun readAllData(store:HealthDataStore, since:Long, listener:((DataEntity)->Unit)?):Long{
-        val timestamp = System.currentTimeMillis()
-        var loop = true
-        var syncTarget = since
-        while(loop){
-            val timeFilter = getTimeFilter(syncTarget)
-            syncTarget = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            Log.d("StepCollector","readAllData() : syncTarget=$syncTarget, endTime=${timeFilter.endTime}")
-            if(timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() >= timestamp)
-                loop = false
-
-            val req = DataType.StepsType
-                .TOTAL
-                .requestBuilder
-                .setLocalTimeFilter(timeFilter)
-                .setOrdering(Ordering.DESC)
-                .build()
-
-            val resList = store.aggregateData(req).dataList
-
-            val startTime = timeFilter.startTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            val endTime = timeFilter.endTime!!.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-            //Log.d("TAG", "StepCollector : $startTime~$endTime")
-            if(resList.isNotEmpty()){
-                val step:Long? = resList.first().value?.toLong()
-                if(step != null){
-                    Log.d("StepCollector", "$step steps in $startTime~$endTime")
-                    listener?.invoke(
-                        Entity(
-                            System.currentTimeMillis(),
-                            step,
-                            startTime,
-                            endTime
-                        )
-                    )
-                }
-            }
-        }
-        return timestamp
-    }*/
 
     private var lastSynced:Long = System.currentTimeMillis() - syncPastLimitDays*24L*3600L*1000L
     override fun start() {

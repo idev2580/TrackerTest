@@ -129,6 +129,7 @@ class BloodPressureCollector(
     suspend fun readAllData(store:HealthDataStore):List<Entity>{
         //Sync all data from samsung health data SDK at once, using list.
         //For better performance and battery time, this should be used instead of above one.
+        val rTimestamp = System.currentTimeMillis()
         val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
         val req = DataTypes.BLOOD_PRESSURE
             .changedDataRequestBuilder
@@ -157,7 +158,7 @@ class BloodPressureCollector(
 
                 entityList.add(
                     Entity(
-                        System.currentTimeMillis(),
+                        rTimestamp,
                         uid,
                         timestamp,
                         diastolic?:Float.NaN,
@@ -181,12 +182,13 @@ class BloodPressureCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "BloodPressureCollector: $timestamp")
+
 
                 val readEntities = readAllData(store)
                 readEntities.forEach{
                     listener?.invoke(it)
                 }
+                Log.d("BloodPressureCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
                 /*val readEntity = readData(store)
                 if(readEntity != null){

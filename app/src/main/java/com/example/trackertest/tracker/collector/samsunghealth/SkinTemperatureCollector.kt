@@ -72,8 +72,9 @@ class SkinTemperatureCollector(
 
     private var job: Job? = null
 
-    var lastSyncTimestamp:Long = -1L
-    suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
+    private var lastSyncTimestamp:Long = -1L
+    private suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
+        val rTimestamp = System.currentTimeMillis()
         val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
         val req = DataTypes.SKIN_TEMPERATURE
             .changedDataRequestBuilder
@@ -106,7 +107,7 @@ class SkinTemperatureCollector(
                     val m_skinTemperature:Float = it.skinTemperature
 
                     entityList.add(Entity(
-                        System.currentTimeMillis(),
+                        rTimestamp,
                         m_uid,
                         m_startTime,
                         m_endTime,
@@ -119,7 +120,7 @@ class SkinTemperatureCollector(
                 retList.add(
                     Pair(
                         MetadataEntity(
-                            System.currentTimeMillis(),
+                            rTimestamp,
                             uid,
                             startTime,
                             endTime?:startTime,
@@ -141,11 +142,9 @@ class SkinTemperatureCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "SkinTemperatureCollector: $timestamp")
-
                 val dataList = readAllData(store)
                 dataList.forEach{
-                    var itemLogMsg:String = "Metadata=${it.first}, dataCount=${it.second.size}"
+                    //var itemLogMsg:String = "Metadata=${it.first}, dataCount=${it.second.size}"
                     metadataListener?.invoke(it.first)
                     it.second.forEach{
                         listener?.invoke(it)
@@ -153,6 +152,7 @@ class SkinTemperatureCollector(
                     }
                     //Log.d("TAG", "SkinTemperatureCollector :\n$itemLogMsg")
                 }
+                Log.d("SkinTemperatureCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

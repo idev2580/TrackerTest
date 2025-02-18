@@ -35,7 +35,7 @@ class StepGoalCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(600)
+            TimeUnit.SECONDS.toMillis(60)
         )
         val defaultGoal:Long = 6000
     }
@@ -68,10 +68,11 @@ class StepGoalCollector(
     private var job: Job? = null
 
     //At now, skip reading latestGoal data and just use member variable to track them
-    var latestGoalSetTime:Long = -1
-    var latestGoal:Long = -2    //-1 is default goal. To track even default goal at first, it should not be -1.
+    private var latestGoalSetTime:Long = -1
+    private var latestGoal:Long = -2    //-1 is default goal. To track even default goal at first, it should not be -1.
 
-    suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore):Entity?{
+        val rTimestamp = System.currentTimeMillis()
         val req = DataType.StepsGoalType
             .LAST.requestBuilder
             .setOrdering(Ordering.DESC)
@@ -95,11 +96,11 @@ class StepGoalCollector(
                 latestGoal = recordGoal
 
                 Log.d(
-                    "TAG",
-                    "StepGoalCollector: latestGoalSetTime=$latestGoalSetTime, goal=$recordGoal, isDefaultGoal=$isDefaultGoal"
+                    "StepGoalCollector",
+                    "latestGoalSetTime=$latestGoalSetTime, goal=$recordGoal, isDefaultGoal=$isDefaultGoal"
                 )
                 return Entity(
-                    latestGoalSetTime,
+                    rTimestamp,
                     recordGoal,
                     latestGoalSetTime
                 )
@@ -115,7 +116,6 @@ class StepGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "StepGoalCollector: timestamp=$timestamp")
 
                 val readEntity = readGoal(store)
                 if(readEntity != null){
@@ -123,6 +123,7 @@ class StepGoalCollector(
                         readEntity
                     )
                 }
+                Log.d("StepGoalCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

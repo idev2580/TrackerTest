@@ -69,48 +69,10 @@ class WaterIntakeCollector(
 
     private var job: Job? = null
 
-    var lastSyncTimestamp:Long = -1
-    suspend fun readData(store: HealthDataStore): Entity?{
-        val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
-        val req = DataTypes.WATER_INTAKE
-            .changedDataRequestBuilder
-            .setChangeTimeFilter(timeFilter)
-            .build()
-        val dataList = store.readChanges(req).dataList
-        Log.d("TAG", "WaterIntake : To-sync data count=${dataList.size}, lastSyncTimestamp=$lastSyncTimestamp")
-
-        if(dataList.isEmpty()){
-            //No data to sync -> All data synced, change lastSyncTimestamp
-            lastSyncTimestamp = System.currentTimeMillis()
-            return null
-        }
-        //There are at least one or more data to sync
-        // -> Sync them one-by-one. (See conditional sleep call in while loop of start() method)
-        val minItem = dataList.reduce{
-                minItem, item ->
-            if (item.changeTime.toEpochMilli() < minItem.changeTime.toEpochMilli())
-                item
-            else
-                minItem
-        }
-        lastSyncTimestamp = minItem.changeTime.toEpochMilli()
-        if(minItem.changeType == ChangeType.UPSERT){
-            val uid:String = minItem.upsertDataPoint.uid
-            val timestamp:Long = minItem.upsertDataPoint.startTime.toEpochMilli()
-            val amount:Float? = minItem.upsertDataPoint.getValue(DataType.WaterIntakeType.AMOUNT)
-
-            return Entity(
-                System.currentTimeMillis(),
-                uid,
-                timestamp,
-                amount?:Float.NaN
-            )
-        }
-        return null
-    }
-    suspend fun readAllData(store:HealthDataStore):List<Entity>{
+    private var lastSyncTimestamp:Long = -1
+    private suspend fun readAllData(store:HealthDataStore):List<Entity>{
         //Sync all data from samsung health data SDK at once, using list.
-        //For better performance and battery time, this should be used instead of above one.
+        val rTimestamp = System.currentTimeMillis()
         val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
         val req = DataTypes.WATER_INTAKE
             .changedDataRequestBuilder
@@ -132,7 +94,7 @@ class WaterIntakeCollector(
                 val amount:Float? = it.upsertDataPoint.getValue(DataType.WaterIntakeType.AMOUNT)
                 entityList.add(
                     Entity(
-                        System.currentTimeMillis(),
+                        rTimestamp,
                         uid,
                         timestamp,
                         amount?:Float.NaN
@@ -152,21 +114,12 @@ class WaterIntakeCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "WaterIntakeCollector: $timestamp")
-
                 val readEntities = readAllData(store)
                 readEntities.forEach{
                     listener?.invoke(it)
                 }
+                Log.d("WaterIntakeCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
-                /*val readEntity = readData(store)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
-                }
-                if(lastSyncTimestamp >= timestamp)
-                    sleep(configFlow.value.interval)*/
             }
         }
 

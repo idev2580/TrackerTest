@@ -71,8 +71,9 @@ class HeartRateCollector(
 
     private var job: Job? = null
 
-    var lastSyncTimestamp:Long = -1L
-    suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
+    private var lastSyncTimestamp:Long = -1L
+    private suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
+        val rTimestamp = System.currentTimeMillis()
         val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
         val req = DataTypes.HEART_RATE
             .changedDataRequestBuilder
@@ -105,7 +106,7 @@ class HeartRateCollector(
                     val m_heartRate:Float = it.heartRate
 
                     entityList.add(Entity(
-                        System.currentTimeMillis(),
+                        rTimestamp,
                         m_uid,
                         m_startTime,
                         m_endTime,
@@ -118,7 +119,7 @@ class HeartRateCollector(
                 retList.add(
                     Pair(
                         MetadataEntity(
-                            System.currentTimeMillis(),
+                            rTimestamp,
                             uid,
                             startTime,
                             endTime?:startTime,
@@ -140,11 +141,10 @@ class HeartRateCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "HeartRateCollector: $timestamp")
 
                 val dataList = readAllData(store)
                 dataList.forEach{
-                    var itemLogMsg:String = "Metadata=${it.first}, dataCount=${it.second.size}"
+                    //var itemLogMsg:String = "Metadata=${it.first}, dataCount=${it.second.size}"
                     metadataListener?.invoke(it.first)
                     it.second.forEach{
                         listener?.invoke(it)
@@ -152,6 +152,7 @@ class HeartRateCollector(
                     }
                     //Log.d("TAG", "HeartRateCollector :\n$itemLogMsg")
                 }
+                Log.d("HeartRateCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

@@ -108,7 +108,7 @@ fun MainScreen(
         NavHost(
             navController = navController,
             startDestination = MainScreen.MAIN_SELECTION_SCREEN.name,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp))
         ){
             composable(route = MainScreen.MAIN_SELECTION_SCREEN.name){
                 LazyColumn(
@@ -179,7 +179,6 @@ fun MainScreen(
             composable(route = MainScreen.NONSESSION_DATA.name){
                 LazyColumn(modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(15.dp, 15.dp, 15.dp, 15.dp))
                 ) {
                     item {
                         NonsessionDataPanel(
@@ -327,7 +326,8 @@ fun MainScreen(
                         NonsessionDataPanel(
                             "WaterIntakeGoal", tracker.waterGoalCollector.dataStorage,
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .fillMaxWidth(),
+                            hasBottomBorder = false
                         ) { it ->
                             val item = it as WaterIntakeGoalCollector.Entity
                             val valueMap = mapOf(
@@ -344,6 +344,7 @@ fun MainScreen(
                     "ActivitySummary", tracker.asCollector.dataStorage.values.toList(),
                     modifier = Modifier
                         .fillMaxWidth(),
+                    hasBottomBorder = false,
                     isLazy = true
                 ) { it ->
                     val item = it as ActivitySummaryCollector.Entity
@@ -363,6 +364,7 @@ fun MainScreen(
                     "Step", tracker.stepCollector.dataStorage.values.toList(),
                     modifier = Modifier
                         .fillMaxWidth(),
+                    hasBottomBorder = false,
                     isLazy = true
                 ) { it ->
                     val item = it as StepCollector.Entity

@@ -68,8 +68,9 @@ class DeviceCollector(
 
     private var job: Job? = null
 
-    val deviceInfo:MutableMap<String, Entity> = mutableMapOf()
-    suspend fun readMapData(manager: DeviceManager): Map<String,Entity>{
+    private val deviceInfo:MutableMap<String, Entity> = mutableMapOf()
+    private suspend fun readMapData(manager: DeviceManager): Map<String,Entity>{
+        val rTimestamp = System.currentTimeMillis()
         //What a dirty code from absence of DeviceGroup.ALL
         val mobiles = manager.getDevices(DeviceGroup.MOBILE)
         val watches = manager.getDevices(DeviceGroup.WATCH)
@@ -100,7 +101,7 @@ class DeviceCollector(
                 Log.d("TAG", "DeviceCollector : Device detected(name=$deviceName, type=$deviceType, id=$deviceId)")
             }
             readDeviceInfo[deviceId] = Entity(
-                System.currentTimeMillis(),
+                rTimestamp,
                 deviceType,
                 deviceId,
                 deviceManufacturer,
@@ -119,7 +120,7 @@ class DeviceCollector(
             val deviceManager = store.getDeviceManager()
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "DeviceCollector: $timestamp")
+                Log.d("DeviceCollector", "Synced at $timestamp")
 
                 val readEntity = readMapData(deviceManager)
                 readEntity.forEach{

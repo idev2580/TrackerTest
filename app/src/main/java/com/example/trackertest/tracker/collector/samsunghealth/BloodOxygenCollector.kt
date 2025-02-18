@@ -72,8 +72,9 @@ class BloodOxygenCollector(
 
     private var job: Job? = null
 
-    var lastSyncTimestamp:Long = -1L
-    suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
+    private var lastSyncTimestamp:Long = -1L
+    private suspend fun readAllData(store: HealthDataStore):List<Pair<MetadataEntity, List<Entity>>>{
+        val rTimestamp = System.currentTimeMillis()
         val timeFilter = InstantTimeFilter.since(Instant.ofEpochMilli(lastSyncTimestamp + 1))
         val req = DataTypes.BLOOD_OXYGEN
             .changedDataRequestBuilder
@@ -107,7 +108,7 @@ class BloodOxygenCollector(
                     val m_oxygenSaturation:Float = it.oxygenSaturation
 
                     entityList.add(Entity(
-                        System.currentTimeMillis(),
+                        rTimestamp,
                         m_uid,
                         m_startTime,
                         m_endTime,
@@ -120,7 +121,7 @@ class BloodOxygenCollector(
                 retList.add(
                     Pair(
                         MetadataEntity(
-                            System.currentTimeMillis(),
+                            rTimestamp,
                             uid,
                             startTime,
                             endTime?:startTime,
@@ -141,7 +142,6 @@ class BloodOxygenCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "BloodOxygenCollector: $timestamp")
 
                 val dataList = readAllData(store)
                 dataList.forEach{
@@ -153,6 +153,7 @@ class BloodOxygenCollector(
                     }
                     //Log.d("TAG", "BloodOxygenCollector :\n$itemLogMsg")
                 }
+                Log.d("BloodOxygenCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }

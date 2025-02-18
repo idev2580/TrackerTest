@@ -70,18 +70,20 @@ fun NamedPanel(name:String, isOpened: MutableState<Boolean>, modifier: Modifier 
 }
 
 @Composable
-fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier, isLazy:Boolean=false, dataKeyMapGen:(it: DataEntity)->Map<String, String>){
+fun NonsessionDataPanel(name:String, dataList:List<DataEntity>, modifier: Modifier = Modifier, hasBottomBorder:Boolean=true, isLazy:Boolean=false, dataKeyMapGen:(it: DataEntity)->Map<String, String>){
     val isOpened = remember{ mutableStateOf(false) }
     NamedPanel("$name(${dataList.size})", isOpened, modifier.drawWithContent{
         val lineSize = 1.dp.toPx()
         val y = size.height - lineSize
         drawContent()
-        drawLine(
-            color = Color.Gray,
-            start = Offset(0f, y),
-            end = Offset(size.width, y),
-            strokeWidth = lineSize,
-        )
+        if(hasBottomBorder) {
+            drawLine(
+                color = Color.Gray,
+                start = Offset(0f, y),
+                end = Offset(size.width, y),
+                strokeWidth = lineSize,
+            )
+        }
     }){
         if(isLazy){
             LazyColumn {
@@ -111,7 +113,7 @@ fun SessionDataPanel(
     val isOpened = remember{ mutableStateOf(false) }
     val isMetaOpened = remember{ mutableStateOf(false) }
     val isRecordOpened = remember{ mutableStateOf(false) }
-    NamedPanel(name, isOpened, modifier.border(1.dp, Color.Black)){
+    NamedPanel(name, isOpened, modifier){
         Column{
             NamedPanel(" - Metadata(${metadataList.size})", isMetaOpened, Modifier
                 .fillMaxWidth()

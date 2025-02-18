@@ -35,7 +35,7 @@ class SleepGoalCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(600)
+            TimeUnit.SECONDS.toMillis(60)
         )
         //TODO : Set this value properly.
         val defaultBedTimeGoal:Long = 0
@@ -68,8 +68,8 @@ class SleepGoalCollector(
     }
 
     private var job: Job? = null
-
-    suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore):Entity?{
+        val rTimestamp = System.currentTimeMillis()
         val timeFilter = LocalDateFilter.since(
             Instant.ofEpochMilli(
                 if(latestGoalSetTime != -1L) latestGoalSetTime else 0
@@ -101,13 +101,13 @@ class SleepGoalCollector(
                 latestBedTimeGoal = recordBgoal
                 latestWakeUpTimeGoal = recordWgoal
                 Log.d(
-                    "TAG",
-                    "SleepGoalCollector : latestGoalSetTime=$latestGoalSetTime, latestBedTimeGoal=$latestBedTimeGoal, latestWakeUpTimeGoal=$latestWakeUpTimeGoal"
+                    "SleepGoalCollector",
+                    "latestGoalSetTime=$latestGoalSetTime, latestBedTimeGoal=$latestBedTimeGoal, latestWakeUpTimeGoal=$latestWakeUpTimeGoal"
                 )
             }
 
             return Entity(
-                latestGoalSetTime,
+                rTimestamp,
                 recordBgoal,
                 recordWgoal,
                 latestGoalSetTime
@@ -116,9 +116,9 @@ class SleepGoalCollector(
         return null
     }
 
-    var latestGoalSetTime:Long = -1
-    var latestBedTimeGoal:Long = -2
-    var latestWakeUpTimeGoal:Long = -2
+    private var latestGoalSetTime:Long = -1
+    private var latestBedTimeGoal:Long = -2
+    private var latestWakeUpTimeGoal:Long = -2
 
     override fun start() {
         super.start()
