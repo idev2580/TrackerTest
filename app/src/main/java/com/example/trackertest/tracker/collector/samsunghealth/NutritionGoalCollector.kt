@@ -7,12 +7,15 @@ import com.example.trackertest.tracker.collector.core.Availability
 import com.example.trackertest.tracker.collector.core.CollectorConfig
 import com.example.trackertest.tracker.collector.core.CollectorState
 import com.example.trackertest.tracker.collector.core.DataEntity
+import com.example.trackertest.tracker.collector.samsunghealth.WaterIntakeGoalCollector.Entity
 import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
+import com.samsung.android.sdk.health.data.request.LocalDateGroup
+import com.samsung.android.sdk.health.data.request.LocalDateGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +25,7 @@ import kotlinx.coroutines.launch
 import java.lang.Thread.sleep
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -67,41 +71,47 @@ class NutritionGoalCollector(
 
     private var job: Job? = null
 
-    private var latestGoalSetTime:Long = -1
+    private val syncPastLimitDays:Long = 128
+    private var latestGoalSetTime:Long = System.currentTimeMillis() - (syncPastLimitDays * 24L * 3600000L)
     private var latestCaloriesGoal:Float = -2.0f
 
-    private suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore, listener:((DataEntity)->Unit)?){
         val rTimestamp = System.currentTimeMillis()
         val req = DataType.NutritionGoalType
             .LAST_CALORIES.requestBuilder
-            .setOrdering(Ordering.DESC)
-            .setLocalDateFilter(
+            .setOrdering(Ordering.ASC)
+            .setLocalDateFilterWithGroup(
                 LocalDateFilter.since(
-                    Instant.ofEpochMilli(
-                        if(latestGoalSetTime != -1L) latestGoalSetTime else 0
-                    )
+                    Instant.ofEpochMilli(latestGoalSetTime)
                         .atZone(ZoneId.systemDefault())
+                        .truncatedTo(ChronoUnit.DAYS)
                         .toLocalDate()
+                ),
+                LocalDateGroup.of(
+                    LocalDateGroupUnit.DAILY,
+                    1
                 )
             ).build()
         val resList = store.aggregateData(req).dataList
-        if(resList.isNotEmpty()){
-            val goal:Float? = resList.first().value?.toFloat()
-            if(goal != null){
-                val recordGoal = if (goal == defaultCaloriesGoal) -1.0f else goal
-                if(recordGoal != latestCaloriesGoal) {
-                    latestGoalSetTime = System.currentTimeMillis()
-                    latestCaloriesGoal = recordGoal
-                    Log.d("NutritionGoalCollector", "latestGoalSetTime=$latestGoalSetTime, latestCaloriesGoal=$latestCaloriesGoal")
-                    return Entity(
+        resList.forEach{
+            val readValue:Float = it.value ?: -2.0f
+            val isDefaultGoal:Boolean = (readValue == NutritionGoalCollector.defaultCaloriesGoal)
+            val goalValue:Float = if(isDefaultGoal) -1.0f else readValue
+
+            if(goalValue != latestCaloriesGoal && latestGoalSetTime <= it.startTime.toEpochMilli()){
+                latestCaloriesGoal = goalValue
+                latestGoalSetTime = it.startTime.toEpochMilli()
+                listener?.invoke(
+                    Entity(
                         rTimestamp,
-                        recordGoal,
+                        latestCaloriesGoal,
                         latestGoalSetTime
                     )
-                }
+                )
+                Log.d("NutritionGoalCollector", "${it.startTime}~${it.endTime}, $goalValue")
             }
         }
-        return null
+        Log.d("NutritionGoalCollector", "latestGoalSetTime = ${Instant.ofEpochMilli(latestGoalSetTime).atZone(ZoneId.systemDefault()).toLocalDateTime()}")
     }
     override fun start() {
         super.start()
@@ -111,12 +121,7 @@ class NutritionGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                val readEntity = readGoal(store)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
-                }
+                readGoal(store, listener)
                 Log.d("NutritionGoalCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }

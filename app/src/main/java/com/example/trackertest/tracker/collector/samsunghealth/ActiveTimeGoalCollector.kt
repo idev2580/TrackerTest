@@ -13,6 +13,8 @@ import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
+import com.samsung.android.sdk.health.data.request.LocalDateGroup
+import com.samsung.android.sdk.health.data.request.LocalDateGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.lang.Thread.sleep
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -67,39 +70,46 @@ class ActiveTimeGoalCollector(
 
     private var job: Job? = null
 
-    private var latestGoalSetTime:Long = -1
+    private val syncPastLimitDays:Long = 128
+    private var latestGoalSetTime:Long = System.currentTimeMillis() - (syncPastLimitDays * 24L * 3600000L)
     private var latestGoal:Long = -2
-    private suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore, listener:((DataEntity)->Unit)?){
+        val rTimestamp = System.currentTimeMillis()
         val req = DataType.ActiveTimeGoalType
             .LAST.requestBuilder
-            .setOrdering(Ordering.DESC)
-            .setLocalDateFilter(
+            .setOrdering(Ordering.ASC)
+            .setLocalDateFilterWithGroup(
                 LocalDateFilter.since(
-                    Instant.ofEpochMilli(
-                        if(latestGoalSetTime != -1L) latestGoalSetTime else 0
-                    )
+                    Instant.ofEpochMilli(latestGoalSetTime)
                         .atZone(ZoneId.systemDefault())
+                        .truncatedTo(ChronoUnit.DAYS)
                         .toLocalDate()
+                ),
+                LocalDateGroup.of(
+                    LocalDateGroupUnit.DAILY,
+                    1
                 )
             ).build()
         val resList = store.aggregateData(req).dataList
-        if(resList.isNotEmpty()){
-            val goal:Long? = resList.first().value?.toMillis()
-            if(goal != null){
-                val recordGoal = if (goal == defaultGoal) -1L else goal
-                if(recordGoal != latestGoal){
-                    latestGoalSetTime = System.currentTimeMillis()
-                    latestGoal = recordGoal
-                    Log.d("ActiveTimeGoalCollector", "latestGoalSetTime=$latestGoalSetTime, latestGoal=$latestGoal")
-                    return Entity(
-                        latestGoalSetTime,
-                        recordGoal,
+        resList.forEach{
+            val readValue:Long = it.value?.toMillis() ?: -2L
+            val isDefaultGoal:Boolean = (readValue == ActiveTimeGoalCollector.defaultGoal)
+            val goalValue:Long = if(isDefaultGoal) -1L else readValue
+
+            if(goalValue != latestGoal && latestGoalSetTime <= it.startTime.toEpochMilli()){
+                latestGoal = goalValue
+                latestGoalSetTime = it.startTime.toEpochMilli()
+                listener?.invoke(
+                    Entity(
+                        rTimestamp,
+                        latestGoal,
                         latestGoalSetTime
                     )
-                }
+                )
+                Log.d("ActiveTimeGoalCollector", "${it.startTime}~${it.endTime}, $goalValue")
             }
         }
-        return null
+        Log.d("ActiveTimeGoalCollector", "latestGoalSetTime = ${Instant.ofEpochMilli(latestGoalSetTime).atZone(ZoneId.systemDefault()).toLocalDateTime()}")
     }
     override fun start() {
         super.start()
@@ -109,15 +119,8 @@ class ActiveTimeGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
+                readGoal(store, listener)
                 Log.d("ActiveTimeGoalCollector", "Synced at $timestamp")
-
-                val readEntity = readGoal(store)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
-                }
-
                 sleep(configFlow.value.interval)
             }
         }

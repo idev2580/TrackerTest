@@ -13,6 +13,8 @@ import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
+import com.samsung.android.sdk.health.data.request.LocalDateGroup
+import com.samsung.android.sdk.health.data.request.LocalDateGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.lang.Thread.sleep
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -37,9 +40,6 @@ class SleepGoalCollector(
         val defaultConfig = Config(
             TimeUnit.SECONDS.toMillis(60)
         )
-        //TODO : Set this value properly.
-        val defaultBedTimeGoal:Long = 0
-        val defaultWakeUpTimeGoal:Long = 0
     }
     override val _defaultConfig = SleepGoalCollector.defaultConfig
 
@@ -68,57 +68,70 @@ class SleepGoalCollector(
     }
 
     private var job: Job? = null
-    private suspend fun readGoal(store: HealthDataStore):Entity?{
+
+    private val syncPastLimitDays:Long = 128
+    private var latestGoalSetTime:Long = System.currentTimeMillis() - (syncPastLimitDays * 24L * 3600000L)
+    private var latestBedTimeGoal:Long = -2
+    private var latestWakeUpTimeGoal:Long = -2
+
+    private suspend fun readGoal(store: HealthDataStore, listener:((DataEntity)->Unit)?){
         val rTimestamp = System.currentTimeMillis()
         val timeFilter = LocalDateFilter.since(
             Instant.ofEpochMilli(
-                if(latestGoalSetTime != -1L) latestGoalSetTime else 0
+                latestGoalSetTime
             )
                 .atZone(ZoneId.systemDefault())
+                .truncatedTo(ChronoUnit.DAYS)
                 .toLocalDate()
+        )
+        val timeGroup = LocalDateGroup.of(
+            LocalDateGroupUnit.DAILY,
+            1
         )
         val breq = DataType.SleepGoalType
             .LAST_BED_TIME.requestBuilder
-            .setOrdering(Ordering.DESC)
-            .setLocalDateFilter(timeFilter).build()
-        val bresList = store.aggregateData(breq).dataList
+            .setOrdering(Ordering.ASC)
+            .setLocalDateFilterWithGroup(timeFilter, timeGroup).build()
+        val bresArray = store.aggregateData(breq).dataList.toTypedArray()
 
         val wreq = DataType.SleepGoalType
             .LAST_WAKE_UP_TIME.requestBuilder
-            .setOrdering(Ordering.DESC)
-            .setLocalDateFilter(timeFilter).build()
-        val wresList = store.aggregateData(wreq).dataList
+            .setOrdering(Ordering.ASC)
+            .setLocalDateFilterWithGroup(timeFilter, timeGroup).build()
+        val wresArray = store.aggregateData(wreq).dataList.toTypedArray()
 
-        val bgoal:Long? = if(bresList.isNotEmpty()) bresList.first().value?.toSecondOfDay()?.toLong() else null
-        val wgoal:Long? = if(wresList.isNotEmpty()) wresList.first().value?.toSecondOfDay()?.toLong() else null
+        if(bresArray.size == wresArray.size){
+            for(i in 0 until bresArray.size){
+                val readBedtime:Long = bresArray[i].value?.toSecondOfDay()?.toLong() ?:-2L
+                val readWakeupTime:Long = wresArray[i].value?.toSecondOfDay()?.toLong() ?: -2L
 
-        if(bgoal != null && wgoal != null){
-            val recordBgoal:Long = if(bgoal == SleepGoalCollector.defaultBedTimeGoal) -1 else bgoal
-            val recordWgoal:Long = if(wgoal == SleepGoalCollector.defaultWakeUpTimeGoal) -1 else wgoal
+                if((readBedtime != latestBedTimeGoal || readWakeupTime != latestWakeUpTimeGoal)
+                    && latestGoalSetTime <= bresArray[i].startTime.toEpochMilli()){
 
-            if(recordBgoal != latestBedTimeGoal || recordWgoal != latestWakeUpTimeGoal){
-                latestGoalSetTime = System.currentTimeMillis()
-                latestBedTimeGoal = recordBgoal
-                latestWakeUpTimeGoal = recordWgoal
-                Log.d(
-                    "SleepGoalCollector",
-                    "latestGoalSetTime=$latestGoalSetTime, latestBedTimeGoal=$latestBedTimeGoal, latestWakeUpTimeGoal=$latestWakeUpTimeGoal"
-                )
+                    latestBedTimeGoal = readBedtime
+                    latestWakeUpTimeGoal = readWakeupTime
+                    latestGoalSetTime = bresArray[i].startTime.toEpochMilli()
+                    listener?.invoke(
+                        Entity(
+                            rTimestamp,
+                            latestBedTimeGoal,
+                            latestWakeUpTimeGoal,
+                            latestGoalSetTime
+                        )
+                    )
+                    Log.d(
+                        "SleepGoalCollector",
+                        "${bresArray[i].startTime}~${bresArray[i].endTime}, bedTimeGoal=$latestBedTimeGoal, wakeUpTimeGoal=$latestWakeUpTimeGoal"
+                    )
+                }
             }
-
-            return Entity(
-                rTimestamp,
-                recordBgoal,
-                recordWgoal,
-                latestGoalSetTime
-            )
+            Log.d("SleepGoalCollector", "latestGoalSetTime = ${Instant.ofEpochMilli(latestGoalSetTime).atZone(ZoneId.systemDefault()).toLocalDateTime()}")
+        } else {
+            Log.e("SleepGoalCollector", "BedTime and WakeUpTime has different numbers. Cannot load SleepGoal.")
         }
-        return null
     }
 
-    private var latestGoalSetTime:Long = -1
-    private var latestBedTimeGoal:Long = -2
-    private var latestWakeUpTimeGoal:Long = -2
+
 
     override fun start() {
         super.start()
@@ -128,15 +141,8 @@ class SleepGoalCollector(
             val store = HealthDataService.getStore(context)
             while(isActive){
                 val timestamp = System.currentTimeMillis()
-                Log.d("TAG", "SleepGoalCollector: $timestamp")
-
-                val readEntity = readGoal(store)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
-                }
-
+                readGoal(store, listener)
+                Log.d("SleepGoalCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
         }
