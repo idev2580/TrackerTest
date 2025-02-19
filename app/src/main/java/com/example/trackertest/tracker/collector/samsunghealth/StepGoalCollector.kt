@@ -11,8 +11,11 @@ import com.example.trackertest.tracker.data.SingletonStorageInterface
 import com.example.trackertest.tracker.permission.PermissionManagerInterface
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
+import com.samsung.android.sdk.health.data.data.AggregatedData
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.LocalDateFilter
+import com.samsung.android.sdk.health.data.request.LocalDateGroup
+import com.samsung.android.sdk.health.data.request.LocalDateGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +25,7 @@ import kotlinx.coroutines.launch
 import java.lang.Thread.sleep
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 
@@ -35,7 +39,7 @@ class StepGoalCollector(
 
     companion object{
         val defaultConfig = Config(
-            TimeUnit.SECONDS.toMillis(60)
+            TimeUnit.SECONDS.toMillis(6)
         )
         val defaultGoal:Long = 6000
     }
@@ -68,45 +72,49 @@ class StepGoalCollector(
     private var job: Job? = null
 
     //At now, skip reading latestGoal data and just use member variable to track them
-    private var latestGoalSetTime:Long = -1
+    private val syncPastLimitDays:Long = 128
+    private var latestGoalSetTime:Long = System.currentTimeMillis() - (syncPastLimitDays * 24L * 3600000L)
     private var latestGoal:Long = -2    //-1 is default goal. To track even default goal at first, it should not be -1.
 
-    private suspend fun readGoal(store: HealthDataStore):Entity?{
+    private suspend fun readGoal(store: HealthDataStore, listener:((DataEntity)->Unit)?){
         val rTimestamp = System.currentTimeMillis()
         val req = DataType.StepsGoalType
             .LAST.requestBuilder
-            .setOrdering(Ordering.DESC)
-            .setLocalDateFilter(
+            .setOrdering(Ordering.ASC)
+            .setLocalDateFilterWithGroup(
                 LocalDateFilter.since(
                     Instant.ofEpochMilli(
-                        if(latestGoalSetTime != -1L) latestGoalSetTime else 0
-                    )
-                        .atZone(ZoneId.systemDefault())
+                        latestGoalSetTime
+                    ).atZone(ZoneId.systemDefault())
+                        .truncatedTo(ChronoUnit.DAYS)
                         .toLocalDate()
+                ),
+                LocalDateGroup.of(
+                    LocalDateGroupUnit.DAILY,
+                    1
                 )
             ).build()
+
         val resList = store.aggregateData(req).dataList
-        if(resList.isNotEmpty()){
-            val goal:Long = resList.first().value!!.toLong()
-            val isDefaultGoal = (goal == StepGoalCollector.defaultGoal)
-            val recordGoal:Long = if(isDefaultGoal) -1 else goal
+        resList.forEach{
+            val readValue:Long = it.value?.toLong() ?: -2L
+            val goalValue:Long = if(readValue == defaultGoal) -1 else readValue
 
-            if(latestGoal != recordGoal) {
-                latestGoalSetTime = System.currentTimeMillis()
-                latestGoal = recordGoal
-
-                Log.d(
-                    "StepGoalCollector",
-                    "latestGoalSetTime=$latestGoalSetTime, goal=$recordGoal, isDefaultGoal=$isDefaultGoal"
+            if(goalValue != latestGoal && latestGoalSetTime <= it.startTime.toEpochMilli()){
+                latestGoal = goalValue
+                latestGoalSetTime = it.startTime.toEpochMilli()
+                listener?.invoke(
+                    Entity(
+                        rTimestamp,
+                        latestGoal,
+                        latestGoalSetTime
+                    )
                 )
-                return Entity(
-                    rTimestamp,
-                    recordGoal,
-                    latestGoalSetTime
-                )
+                Log.d("StepGoalCollector", "${it.startTime}~${it.endTime}, $goalValue")
             }
         }
-        return null
+        Log.d("StepGoalCollector", "latestGoalSetTime = ${Instant.ofEpochMilli(latestGoalSetTime).atZone(ZoneId.systemDefault()).toLocalDateTime()}")
+        return
     }
     override fun start() {
         super.start()
@@ -117,12 +125,7 @@ class StepGoalCollector(
             while(isActive){
                 val timestamp = System.currentTimeMillis()
 
-                val readEntity = readGoal(store)
-                if(readEntity != null){
-                    listener?.invoke(
-                        readEntity
-                    )
-                }
+                readGoal(store, listener)
                 Log.d("StepGoalCollector", "Synced at $timestamp")
                 sleep(configFlow.value.interval)
             }
